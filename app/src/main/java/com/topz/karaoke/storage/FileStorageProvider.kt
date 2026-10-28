@@ -50,22 +50,32 @@ class FileStorageProvider(private val context: Context) : StorageProvider {
         }
     }
 
-    override suspend fun list(kind: FileKind): List<StoredFile> = withContext(Dispatchers.IO) {
-        appRoots().flatMap { root ->
-            try {
-                File(root, kind.folder)
-                    .walkTopDown()
-                    .filter { f ->
-                        f.isFile &&
-                            !f.name.startsWith(".") && // iwas ._file na gawa ng macOS
-                            f.extension.lowercase() in kind.extensions
-                    }
-                    .map { StoredFile(it.absolutePath, it.name, it.length()) }
-                    .toList()
-            } catch (_: SecurityException) {
-                emptyList()
+    override suspend fun list(kind: FileKind, onProgress: (Int) -> Unit): List<StoredFile> =
+        withContext(Dispatchers.IO) {
+            appRoots().flatMap { root -> scan(File(root, kind.folder), kind, onProgress) }
+                .sortedBy { it.name.lowercase() }
+        }
+
+    override suspend fun listIn(dir: File, kind: FileKind, onProgress: (Int) -> Unit): List<StoredFile> =
+        withContext(Dispatchers.IO) { scan(dir, kind, onProgress).sortedBy { it.name.lowercase() } }
+
+    private fun scan(dir: File, kind: FileKind, onProgress: (Int) -> Unit): List<StoredFile> {
+        val out = ArrayList<StoredFile>()
+        try {
+            for (f in dir.walkTopDown().onFail { _, _ -> }) {
+                if (f.isFile &&
+                    !f.name.startsWith(".") && // iwas ._file na gawa ng macOS
+                    f.extension.lowercase() in kind.extensions
+                ) {
+                    out.add(StoredFile(f.absolutePath, f.name, 0L))
+                    if (out.size % 500 == 0) onProgress(out.size)
+                }
             }
-        }.sortedBy { it.name.lowercase() }
+        } catch (_: SecurityException) {
+            // Walang access sa folder na ito.
+        }
+        onProgress(out.size)
+        return out
     }
 
     companion object {
