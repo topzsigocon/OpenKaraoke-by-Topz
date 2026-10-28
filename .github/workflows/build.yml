@@ -27,11 +27,12 @@ jobs:
       - name: Build debug APK
         run: gradle assembleDebug --stacktrace
 
-      - name: Run unit tests
-        run: gradle testDebugUnitTest
-
+      # Ina-upload ang APK bago ang test, para may APK kahit may bumagsak na test.
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: OpenKaraoke-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+
+      - name: Run unit tests
+        run: gradle testDebugUnitTest --stacktrace
