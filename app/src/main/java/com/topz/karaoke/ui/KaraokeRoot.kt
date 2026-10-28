@@ -1,5 +1,6 @@
 package com.topz.karaoke.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -25,10 +26,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.topz.karaoke.data.Song
 
 @Composable
 fun KaraokeRoot(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
     var tab by remember { mutableStateOf(0) }
+    var openSong by remember { mutableStateOf<Song?>(null) }
+
+    // Back button: isara muna ang lyrics screen bago lumabas ng app.
+    BackHandler(enabled = openSong != null) { openSong = null }
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Scaffold(
@@ -44,7 +50,10 @@ fun KaraokeRoot(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
                     items.forEachIndexed { i, item ->
                         NavigationBarItem(
                             selected = tab == i,
-                            onClick = { tab = i },
+                            onClick = {
+                                tab = i
+                                openSong = null
+                            },
                             icon = { Text(item.first) },
                             label = { Text(item.second) }
                         )
@@ -53,10 +62,24 @@ fun KaraokeRoot(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
             }
         ) { inner ->
             Box(Modifier.padding(inner).fillMaxSize()) {
-                when (tab) {
-                    0 -> LibraryScreen(vm, onRequestAccess, onOpenSettings = { tab = 2 })
-                    1 -> QueueScreen(vm)
-                    else -> SettingsScreen(vm, onRequestAccess)
+                val opened = openSong
+                if (opened != null) {
+                    LyricsScreen(
+                        song = opened,
+                        onBack = { openSong = null },
+                        onAddToQueue = { vm.enqueue(opened) }
+                    )
+                } else {
+                    when (tab) {
+                        0 -> LibraryScreen(
+                            vm = vm,
+                            onRequestAccess = onRequestAccess,
+                            onOpenSettings = { tab = 2 },
+                            onOpenSong = { openSong = it }
+                        )
+                        1 -> QueueScreen(vm)
+                        else -> SettingsScreen(vm, onRequestAccess)
+                    }
                 }
             }
         }

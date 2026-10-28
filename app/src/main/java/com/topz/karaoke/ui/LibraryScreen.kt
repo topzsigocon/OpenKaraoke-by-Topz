@@ -2,6 +2,7 @@ package com.topz.karaoke.ui
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -35,7 +36,12 @@ import androidx.compose.ui.unit.dp
 import com.topz.karaoke.data.Song
 
 @Composable
-fun LibraryScreen(vm: KaraokeViewModel, onRequestAccess: () -> Unit, onOpenSettings: () -> Unit) {
+fun LibraryScreen(
+    vm: KaraokeViewModel,
+    onRequestAccess: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenSong: (Song) -> Unit
+) {
     val context = LocalContext.current
     var query by remember { mutableStateOf("") }
     val results = remember(vm.songs, query) { vm.search(query, 300) }
@@ -88,7 +94,7 @@ fun LibraryScreen(vm: KaraokeViewModel, onRequestAccess: () -> Unit, onOpenSetti
             contentPadding = PaddingValues(bottom = 96.dp)
         ) {
             items(results, key = { it.key }) { song ->
-                SongRow(song) {
+                SongRow(song, onOpen = { onOpenSong(song) }) {
                     vm.enqueue(song)
                     Toast.makeText(context, "Naidagdag: ${song.title}", Toast.LENGTH_SHORT).show()
                 }
@@ -98,12 +104,13 @@ fun LibraryScreen(vm: KaraokeViewModel, onRequestAccess: () -> Unit, onOpenSetti
 }
 
 @Composable
-private fun SongRow(song: Song, onAdd: () -> Unit) {
+private fun SongRow(song: Song, onOpen: () -> Unit, onAdd: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .background(KColors.NavySurface)
+            .clickable(onClick = onOpen)
             .padding(start = 12.dp, top = 8.dp, bottom = 8.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
