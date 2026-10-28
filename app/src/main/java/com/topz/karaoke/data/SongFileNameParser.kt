@@ -15,6 +15,11 @@ data class ParsedSongName(
  *   "123 Pamagat.mid"
  *   "123.mid"            (numero lang)
  *   "Pamagat.mid"        (walang numero)
+ *
+ * Kapag " - " ang pagitan, ang una ay title at ang natitira ay artist.
+ * Kapag walang " - ", ang buong natitira ay title (ang "_" ay nagiging espasyo).
+ * Tandaan: ang pangalang nagsisimula sa numero (hal. "7 Rings.mid") ay
+ * ituturing na may song number na 7.
  */
 object SongFileNameParser {
     private val numberOnly = Regex("""^\s*(\d{1,9})\s*$""")
