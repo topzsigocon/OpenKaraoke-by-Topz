@@ -16,10 +16,13 @@
     <application
         android:name=".KaraokeApp"
         android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="OpenKaraoke"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.NoActionBar">
+        android:theme="@style/Theme.OpenKaraoke">
 
+        <!-- Unang bubukas: ipinapakita ang naka-save na crash (kung meron), kung wala ay diretso sa app. -->
         <activity
             android:name=".LauncherActivity"
             android:exported="true">
@@ -31,7 +34,8 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>
