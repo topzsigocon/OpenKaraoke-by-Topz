@@ -51,11 +51,14 @@ class TempoMap(division: Int, tempos: List<TempoChange>) {
         }
     }
 
-    fun tickToMs(tick: Long): Long {
-        if (tick <= 0L) return 0L
-        if (smpte) return Math.round(tick * msPerTickSmpte)
+    /** Oras sa microseconds (floating point) para sa sample-accurate na pag-schedule. */
+    fun tickToUs(tick: Long): Double {
+        if (tick <= 0L) return 0.0
+        if (smpte) return tick * msPerTickSmpte * 1000.0
         val found = java.util.Arrays.binarySearch(starts, tick)
         val i = if (found >= 0) found else -found - 2
-        return Math.round((cumulativeUs[i] + (tick - starts[i]) * usPerTick[i]) / 1000.0)
+        return cumulativeUs[i] + (tick - starts[i]) * usPerTick[i]
     }
+
+    fun tickToMs(tick: Long): Long = Math.round(tickToUs(tick) / 1000.0)
 }
