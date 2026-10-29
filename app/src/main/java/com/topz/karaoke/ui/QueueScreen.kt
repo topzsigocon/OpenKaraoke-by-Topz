@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,13 +26,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.topz.karaoke.audio.PlayerStatus
 
 @Composable
 fun QueueScreen(vm: KaraokeViewModel) {
+    val player = vm.player
+
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Spacer(Modifier.height(12.dp))
 
-        // Placeholder: darating ang player sa susunod na yugto.
         Column(
             Modifier
                 .fillMaxWidth()
@@ -39,11 +43,33 @@ fun QueueScreen(vm: KaraokeViewModel) {
                 .padding(16.dp)
         ) {
             Text("Ngayong tumutugtog", color = KColors.Gold, fontWeight = FontWeight.Bold)
-            val next = vm.queue.firstOrNull()
+            val now = player.song
             Text(
-                text = next?.title ?: "Wala pa. (Darating ang player sa susunod na yugto.)",
-                color = KColors.Cream
+                text = now?.title ?: "Wala pa",
+                color = KColors.Cream,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
+            if (player.status == PlayerStatus.ERROR) {
+                Text(player.errorMessage ?: "May error", color = KColors.CreamDim, style = MaterialTheme.typography.bodySmall)
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (now == null) {
+                    Button(onClick = { vm.playNextFromQueue() }, enabled = vm.queue.isNotEmpty()) {
+                        Text("▶ Simulan ang queue")
+                    }
+                } else {
+                    Button(
+                        onClick = { player.togglePlayPause() },
+                        enabled = player.status == PlayerStatus.PLAYING || player.status == PlayerStatus.PAUSED
+                    ) { Text(if (player.status == PlayerStatus.PLAYING) "⏸" else "▶") }
+                    Spacer(Modifier.width(8.dp))
+                    OutlinedButton(onClick = { vm.skip() }) { Text("⏭ Susunod") }
+                    Spacer(Modifier.width(8.dp))
+                    OutlinedButton(onClick = { player.stop() }) { Text("⏹") }
+                }
+            }
         }
 
         Spacer(Modifier.height(12.dp))
@@ -69,7 +95,7 @@ fun QueueScreen(vm: KaraokeViewModel) {
 
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(bottom = 96.dp)
+            contentPadding = PaddingValues(bottom = 160.dp)
         ) {
             itemsIndexed(vm.queue) { index, song ->
                 Row(
@@ -92,6 +118,7 @@ fun QueueScreen(vm: KaraokeViewModel) {
                             Text(sub, color = KColors.CreamDim, style = MaterialTheme.typography.bodySmall, maxLines = 1)
                         }
                     }
+                    TextButton(onClick = { vm.playQueueItem(index) }) { Text("▶") }
                     TextButton(onClick = { vm.removeFromQueue(index) }) { Text("✕") }
                 }
             }

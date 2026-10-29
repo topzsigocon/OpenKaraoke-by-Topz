@@ -7,6 +7,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.topz.karaoke.audio.DefaultSoundFont
+import com.topz.karaoke.audio.Player
 import com.topz.karaoke.data.IndexCache
 import com.topz.karaoke.data.SettingsStore
 import com.topz.karaoke.data.Song
@@ -27,6 +29,9 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     private val settings = SettingsStore(app)
     private val cacheFile = File(app.filesDir, "song_index.tsv")
 
+    /** Ang audio player (SoundFont synth). */
+    val player = Player(viewModelScope) { resolveSoundFont() }
+
     var hasAccess by mutableStateOf(storage.hasAccess())
         private set
     var scanning by mutableStateOf(false)
@@ -39,6 +44,10 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var soundFontCount by mutableStateOf(0)
         private set
+    var soundFontFiles by mutableStateOf<List<StoredFile>>(emptyList())
+        private set
+    var activeSoundFont by mutableStateOf(settings.getActiveSoundFont())
+        private set
     var videoCount by mutableStateOf(0)
         private set
     var folders by mutableStateOf<Map<FileKind, String?>>(
@@ -50,6 +59,27 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
 
     private var byNumber: Map<Int, Song> = emptyMap()
     private var started = false
+
+    init {
+        player.onSongFinished = { playNextFromQueue() }
+    }
+
+    override fun onCleared() {
+        player.release()
+        super.onCleared()
+    }
+
+    /** Tinatawag sa background thread (kinokopya ang default SoundFont sa unang gamit). */
+    private fun resolveSoundFont(): String? {
+        val active = settings.getActiveSoundFont()
+        if (active != null && File(active).isFile) return active
+        return DefaultSoundFont.path(getApplication())
+    }
+
+    fun setActiveSoundFont(path: String?) {
+        settings.setActiveSoundFont(path)
+        activeSoundFont = path
+    }
 
     fun volumeRoots(): List<File> = storage.volumeRoots()
 
@@ -137,7 +167,9 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private suspend fun refreshCounts() {
-        soundFontCount = listFor(FileKind.SOUNDFONT).size
+        val fonts = listFor(FileKind.SOUNDFONT)
+        soundFontFiles = fonts
+        soundFontCount = fonts.size
         videoCount = listFor(FileKind.VIDEO).size
     }
 
@@ -179,4 +211,22 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     fun clearQueue() {
         queue.clear()
     }
+
+    // ----- Pagtugtog -----
+
+    fun playNow(song: Song) {
+        player.start(song)
+    }
+
+    fun playQueueItem(index: Int) {
+        if (index !in queue.indices) return
+        player.start(queue.removeAt(index))
+    }
+
+    /** Susunod sa queue; kung wala na, hihinto ang player. */
+    fun playNextFromQueue() {
+        if (queue.isNotEmpty()) player.start(queue.removeAt(0)) else player.stop()
+    }
+
+    fun skip() = playNextFromQueue()
 }

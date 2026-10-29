@@ -1,6 +1,7 @@
 package com.topz.karaoke.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -71,6 +72,29 @@ fun SettingsScreen(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
             Spacer(Modifier.height(12.dp))
         }
 
+        Spacer(Modifier.height(8.dp))
+        Text("SoundFont na gagamitin", color = KColors.Gold, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(8.dp))
+        SoundFontRow(
+            name = "Default (GeneralUser GS, kasama sa app)",
+            selected = vm.activeSoundFont == null,
+            onClick = { vm.setActiveSoundFont(null) }
+        )
+        for (font in vm.soundFontFiles) {
+            SoundFontRow(
+                name = font.name,
+                selected = vm.activeSoundFont == font.path,
+                onClick = { vm.setActiveSoundFont(font.path) }
+            )
+        }
+        Text(
+            "Ilagay ang iyong .sf2 sa folder ng SoundFont at i-scan ulit. Ang napakalalaking SF2 " +
+                "(100 MB pataas) ay maaaring maubusan ng memorya sa phone. Magagamit ang bago sa susunod na kantang i-play.",
+            color = KColors.CreamDim,
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(Modifier.height(16.dp))
+
         Button(onClick = { vm.rescan() }, enabled = vm.hasAccess && !vm.scanning) {
             Text(if (vm.scanning) "Nag-i-scan..." else "I-scan ulit")
         }
@@ -117,5 +141,19 @@ private fun FolderCard(
                 TextButton(onClick = onReset) { Text("I-reset") }
             }
         }
+    }
+}
+
+@Composable
+private fun SoundFontRow(name: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp, horizontal = 8.dp)
+    ) {
+        Text(if (selected) "◉" else "○", color = KColors.Gold)
+        Text("  $name", color = if (selected) KColors.Cream else KColors.CreamDim)
     }
 }
