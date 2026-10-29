@@ -14,4 +14,13 @@ class SettingsStore(context: Context) {
         if (path == null) editor.remove("folder_" + kind.name) else editor.putString("folder_" + kind.name, path)
         editor.apply()
     }
+
+    /** Napiling SoundFont (path). Null = gamitin ang default na kasama sa app. */
+    fun getActiveSoundFont(): String? = prefs.getString("active_soundfont", null)
+
+    fun setActiveSoundFont(path: String?) {
+        val editor = prefs.edit()
+        if (path == null) editor.remove("active_soundfont") else editor.putString("active_soundfont", path)
+        editor.apply()
+    }
 }
