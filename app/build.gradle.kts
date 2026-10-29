@@ -43,13 +43,22 @@ android {
         compose = true
     }
 
-    // I-uncomment kapag nagawa mo na ang app/src/main/cpp/CMakeLists.txt
-    // externalNativeBuild {
-    //     cmake {
-    //         path = file("src/main/cpp/CMakeLists.txt")
-    //         version = "3.22.1"
-    //     }
-    // }
+    // Native synth (TinySoundFont)
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
+    // Sa GitHub Actions, gamitin ang NDK na naka-install na sa runner (iwas download).
+    val ciNdk = System.getenv("ANDROID_NDK_LATEST_HOME")
+    if (ciNdk != null) ndkVersion = File(ciNdk).name
+
+    // Huwag i-compress ang SoundFont sa APK para mabilis kopyahin.
+    androidResources {
+        noCompress += listOf("sf2")
+    }
 }
 
 dependencies {
@@ -83,4 +92,40 @@ dependencies {
 
     // Tests
     testImplementation("junit:junit:4.13.2")
+}
+
+// ---- Auto-download ng mga third-party file (hindi isinasama sa repo) ----
+val tsfHeader = layout.projectDirectory.file("src/main/cpp/tsf.h").asFile
+val defaultSoundFont = layout.projectDirectory.file("src/main/assets/default.sf2").asFile
+
+fun download(url: String, target: File) {
+    target.parentFile.mkdirs()
+    val part = File(target.path + ".part")
+    java.net.URI(url).toURL().openStream().use { input ->
+        part.outputStream().use { out -> input.copyTo(out) }
+    }
+    part.renameTo(target)
+}
+
+// TinySoundFont (MIT): isang header file
+val fetchTsf by tasks.registering {
+    onlyIf { !tsfHeader.exists() }
+    doLast { download("https://raw.githubusercontent.com/schellingb/TinySoundFont/main/tsf.h", tsfHeader) }
+}
+
+// GeneralUser GS (default SoundFont). Kung pumalya ang download, tuloy pa rin ang build.
+val fetchDefaultSoundFont by tasks.registering {
+    onlyIf { !defaultSoundFont.exists() }
+    doLast {
+        try {
+            download("https://github.com/mrbumpy409/GeneralUser-GS/raw/refs/heads/main/GeneralUser-GS.sf2", defaultSoundFont)
+        } catch (e: Exception) {
+            logger.warn("Hindi na-download ang default SoundFont (${e.message}). Itutuloy ang build na wala nito.")
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == "preBuild") dependsOn(fetchTsf, fetchDefaultSoundFont)
+    if (name.startsWith("configureCMake") || name.startsWith("buildCMake")) dependsOn(fetchTsf)
 }
