@@ -23,4 +23,18 @@ class SettingsStore(context: Context) {
         if (path == null) editor.remove("active_soundfont") else editor.putString("active_soundfont", path)
         editor.apply()
     }
+
+    /** Background video sa likod ng lyrics. */
+    fun getVideoEnabled(): Boolean = prefs.getBoolean("video_enabled", true)
+
+    fun setVideoEnabled(value: Boolean) {
+        prefs.edit().putBoolean("video_enabled", value).apply()
+    }
+
+    /** Pagkaantala ng lyrics (ms) para tumugma sa narinig na tunog (latency ng audio output). */
+    fun getLyricsOffsetMs(): Int = prefs.getInt("lyrics_offset_ms", 100)
+
+    fun setLyricsOffsetMs(value: Int) {
+        prefs.edit().putInt("lyrics_offset_ms", value).apply()
+    }
 }

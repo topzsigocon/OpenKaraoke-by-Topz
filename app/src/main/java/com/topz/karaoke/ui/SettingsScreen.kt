@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -22,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
@@ -72,6 +74,24 @@ fun SettingsScreen(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
             Spacer(Modifier.height(12.dp))
         }
 
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Background video", color = KColors.Cream, fontWeight = FontWeight.Bold)
+                Text(
+                    if (vm.videoFiles.isEmpty()) {
+                        "Walang video na nahanap sa folder ng video."
+                    } else {
+                        "Random na video mula sa ${vm.videoFiles.size} nahanap, sa likod ng lyrics. " +
+                            "Kung nauutal ang tunog, patayin ito."
+                    },
+                    color = KColors.CreamDim,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Switch(checked = vm.videoEnabled, onCheckedChange = { vm.toggleVideo() })
+        }
+        Spacer(Modifier.height(16.dp))
         Spacer(Modifier.height(8.dp))
         Text("SoundFont na gagamitin", color = KColors.Gold, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))

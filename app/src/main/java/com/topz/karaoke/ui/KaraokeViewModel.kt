@@ -20,6 +20,8 @@ import com.topz.karaoke.storage.StorageProvider
 import com.topz.karaoke.storage.StoredFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -28,6 +30,8 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     private val storage: StorageProvider = FileStorageProvider(app)
     private val settings = SettingsStore(app)
     private val cacheFile = File(app.filesDir, "song_index.tsv")
+    private val queueFile = File(app.filesDir, "queue.tsv")
+    private val queueSaveLock = Mutex()
 
     /** Ang audio player (SoundFont synth). */
     val player = Player(viewModelScope) { resolveSoundFont() }
@@ -50,6 +54,12 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var videoCount by mutableStateOf(0)
         private set
+    var videoFiles by mutableStateOf<List<StoredFile>>(emptyList())
+        private set
+    var videoEnabled by mutableStateOf(settings.getVideoEnabled())
+        private set
+    var lyricsOffsetMs by mutableStateOf(settings.getLyricsOffsetMs())
+        private set
     var folders by mutableStateOf<Map<FileKind, String?>>(
         FileKind.values().associateWith { settings.getFolder(it) }
     )
@@ -62,6 +72,25 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         player.onSongFinished = { playNextFromQueue() }
+        // Ibalik ang queue na na-save noong nakaraang gamit
+        IndexCache.load(queueFile, "queue")?.let { queue.addAll(it) }
+    }
+
+    private fun persistQueue() {
+        val snapshot = queue.toList()
+        viewModelScope.launch(Dispatchers.IO) {
+            queueSaveLock.withLock { IndexCache.save(queueFile, "queue", snapshot) }
+        }
+    }
+
+    fun toggleVideo() {
+        videoEnabled = !videoEnabled
+        settings.setVideoEnabled(videoEnabled)
+    }
+
+    fun changeLyricsOffset(deltaMs: Int) {
+        lyricsOffsetMs = (lyricsOffsetMs + deltaMs).coerceIn(-500, 1000)
+        settings.setLyricsOffsetMs(lyricsOffsetMs)
     }
 
     override fun onCleared() {
@@ -170,7 +199,9 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
         val fonts = listFor(FileKind.SOUNDFONT)
         soundFontFiles = fonts
         soundFontCount = fonts.size
-        videoCount = listFor(FileKind.VIDEO).size
+        val videos = listFor(FileKind.VIDEO)
+        videoFiles = videos
+        videoCount = videos.size
     }
 
     private suspend fun listFor(kind: FileKind, onProgress: (Int) -> Unit = {}): List<StoredFile> {
@@ -202,14 +233,19 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun enqueue(song: Song) {
         queue.add(song)
+        persistQueue()
     }
 
     fun removeFromQueue(index: Int) {
-        if (index in queue.indices) queue.removeAt(index)
+        if (index in queue.indices) {
+            queue.removeAt(index)
+            persistQueue()
+        }
     }
 
     fun clearQueue() {
         queue.clear()
+        persistQueue()
     }
 
     // ----- Pagtugtog -----
@@ -220,12 +256,20 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun playQueueItem(index: Int) {
         if (index !in queue.indices) return
-        player.start(queue.removeAt(index))
+        val song = queue.removeAt(index)
+        persistQueue()
+        player.start(song)
     }
 
     /** Susunod sa queue; kung wala na, hihinto ang player. */
     fun playNextFromQueue() {
-        if (queue.isNotEmpty()) player.start(queue.removeAt(0)) else player.stop()
+        if (queue.isNotEmpty()) {
+            val song = queue.removeAt(0)
+            persistQueue()
+            player.start(song)
+        } else {
+            player.stop()
+        }
     }
 
     fun skip() = playNextFromQueue()

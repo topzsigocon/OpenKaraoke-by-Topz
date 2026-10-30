@@ -79,6 +79,15 @@ fun LyricsScreen(song: Song, vm: KaraokeViewModel, onBack: () -> Unit) {
         }
     }
 
+    val showVideo = vm.videoEnabled && vm.videoFiles.isNotEmpty() && isCurrent &&
+        (player.status == PlayerStatus.PLAYING || player.status == PlayerStatus.PAUSED)
+
+    Box(Modifier.fillMaxSize()) {
+    if (showVideo) {
+        VideoBackground(vm.videoFiles, Modifier.fillMaxSize())
+        // Madilim na takip para mabasa ang lyrics sa ibabaw ng video
+        Box(Modifier.fillMaxSize().background(KColors.Navy.copy(alpha = 0.6f)))
+    }
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Text("← Bumalik") }
@@ -111,13 +120,14 @@ fun LyricsScreen(song: Song, vm: KaraokeViewModel, onBack: () -> Unit) {
             is LoadState.Ready -> LyricsView(s, song, vm, isCurrent)
         }
     }
+    }
 }
 
 @Composable
 private fun LyricsView(ready: LoadState.Ready, song: Song, vm: KaraokeViewModel, isCurrent: Boolean) {
     val player = vm.player
     val lyrics = ready.lyrics
-    val position = if (isCurrent) player.positionMs else 0L
+    val position = if (isCurrent) (player.positionMs - vm.lyricsOffsetMs).coerceAtLeast(0L) else 0L
     val running = isCurrent && player.status == PlayerStatus.PLAYING
     val current = lyrics.lineIndexAt(position)
     val listState = rememberLazyListState()
@@ -143,7 +153,7 @@ private fun LyricsView(ready: LoadState.Ready, song: Song, vm: KaraokeViewModel,
     Spacer(Modifier.height(8.dp))
 
     if (isCurrent) {
-        PlayerControls(player)
+        PlayerControls(player, vm.lyricsOffsetMs) { vm.changeLyricsOffset(it) }
     } else {
         Button(onClick = { vm.playNow(song) }) { Text("▶ I-play ngayon") }
     }
@@ -171,7 +181,7 @@ private fun LyricsView(ready: LoadState.Ready, song: Song, vm: KaraokeViewModel,
 }
 
 @Composable
-private fun PlayerControls(player: Player) {
+private fun PlayerControls(player: Player, syncMs: Int, onSyncChange: (Int) -> Unit) {
     val status = player.status
 
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -228,6 +238,13 @@ private fun PlayerControls(player: Player) {
                 onPlus = { player.changeTempo(5) }
             )
         }
+
+        Stepper(
+            label = "Sync ng lyrics",
+            value = "$syncMs ms",
+            onMinus = { onSyncChange(-25) },
+            onPlus = { onSyncChange(25) }
+        )
 
         if (player.channels.isNotEmpty()) {
             Text(
