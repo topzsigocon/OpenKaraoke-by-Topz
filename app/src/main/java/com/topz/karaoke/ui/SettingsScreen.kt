@@ -78,13 +78,13 @@ fun SettingsScreen(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
         SoundFontRow(
             name = "Default (GeneralUser GS, kasama sa app)",
             selected = vm.activeSoundFont == null,
-            onClick = { vm.setActiveSoundFont(null) }
+            onClick = { vm.selectSoundFont(null) }
         )
         for (font in vm.soundFontFiles) {
             SoundFontRow(
                 name = font.name,
                 selected = vm.activeSoundFont == font.path,
-                onClick = { vm.setActiveSoundFont(font.path) }
+                onClick = { vm.selectSoundFont(font.path) }
             )
         }
         Text(

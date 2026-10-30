@@ -76,7 +76,7 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
         return DefaultSoundFont.path(getApplication())
     }
 
-    fun setActiveSoundFont(path: String?) {
+    fun selectSoundFont(path: String?) {
         settings.setActiveSoundFont(path)
         activeSoundFont = path
     }
