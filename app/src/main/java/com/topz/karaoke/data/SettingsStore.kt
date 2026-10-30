@@ -37,4 +37,17 @@ class SettingsStore(context: Context) {
     fun setLyricsOffsetMs(value: Int) {
         prefs.edit().putInt("lyrics_offset_ms", value).apply()
     }
+
+    /** Mga antas ng mic (0.0 hanggang 1.0). Hindi sine-save kung naka-on ang mic, para laging naka-off pagbukas. */
+    fun getMicVolume(): Float = prefs.getFloat("mic_volume", 0.8f)
+    fun getMicReverb(): Float = prefs.getFloat("mic_reverb", 0.3f)
+    fun getMicEcho(): Float = prefs.getFloat("mic_echo", 0.2f)
+
+    fun setMicLevels(volume: Float, reverb: Float, echo: Float) {
+        prefs.edit()
+            .putFloat("mic_volume", volume)
+            .putFloat("mic_reverb", reverb)
+            .putFloat("mic_echo", echo)
+            .apply()
+    }
 }

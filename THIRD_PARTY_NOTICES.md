@@ -15,3 +15,7 @@ Kung gusto mong iwasan ang isyu, mag-set ng sarili mong SoundFont sa Settings.
 
 ## MIDI/KAR songs
 Hindi kasama sa app. Ang mga kanta (musika at lyrics) ay may copyright ng kani-kanilang may-ari.
+
+## Oboe
+Google. Apache License 2.0. https://github.com/google/oboe
+Ginagamit para sa low-latency na mic input/output (echo/reverb); kinukuha mula sa Google Maven.

@@ -22,6 +22,13 @@ android {
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
+
+        // Kailangan ng Oboe (prefab): shared STL
+        externalNativeBuild {
+            cmake {
+                arguments("-DANDROID_STL=c++_shared")
+            }
+        }
     }
 
     buildTypes {
@@ -43,6 +50,7 @@ android {
     }
     buildFeatures {
         compose = true
+        prefab = true
     }
 
     // Native synth (TinySoundFont)
@@ -88,6 +96,9 @@ dependencies {
     // Video player para sa background video
     implementation("androidx.media3:media3-exoplayer:1.4.1")
     implementation("androidx.media3:media3-ui:1.4.1")
+
+    // Oboe: low-latency na mic input/output (echo/reverb)
+    implementation("com.google.oboe:oboe:1.9.0")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")

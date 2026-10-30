@@ -1,6 +1,7 @@
 package com.topz.karaoke.ui
 
 import android.app.Application
+import android.media.AudioManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -8,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.topz.karaoke.audio.DefaultSoundFont
+import com.topz.karaoke.audio.MicEngine
 import com.topz.karaoke.audio.Player
 import com.topz.karaoke.data.IndexCache
 import com.topz.karaoke.data.SettingsStore
@@ -34,7 +36,7 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     private val queueSaveLock = Mutex()
 
     /** Ang audio player (SoundFont synth). */
-    val player = Player(viewModelScope) { resolveSoundFont() }
+    val player = Player(viewModelScope, app.getSystemService(AudioManager::class.java)) { resolveSoundFont() }
 
     var hasAccess by mutableStateOf(storage.hasAccess())
         private set
@@ -60,6 +62,19 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var lyricsOffsetMs by mutableStateOf(settings.getLyricsOffsetMs())
         private set
+
+    // ----- Mic echo/reverb -----
+    var micEnabled by mutableStateOf(false)
+        private set
+    var micError by mutableStateOf<String?>(null)
+        private set
+    var micVolume by mutableStateOf(settings.getMicVolume())
+        private set
+    var micReverb by mutableStateOf(settings.getMicReverb())
+        private set
+    var micEcho by mutableStateOf(settings.getMicEcho())
+        private set
+    private var micResumeOnStart = false
     var folders by mutableStateOf<Map<FileKind, String?>>(
         FileKind.values().associateWith { settings.getFolder(it) }
     )
@@ -83,6 +98,61 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    private fun pushMicLevels() {
+        if (MicEngine.available) MicEngine.nativeSetParams(micVolume, micReverb, micEcho)
+    }
+
+    fun enableMic() {
+        viewModelScope.launch {
+            val ok = withContext(Dispatchers.IO) {
+                if (!MicEngine.available) {
+                    false
+                } else {
+                    pushMicLevels()
+                    MicEngine.nativeStart()
+                }
+            }
+            micEnabled = ok
+            micError = when {
+                ok -> null
+                !MicEngine.available -> "Hindi ma-load ang mic engine."
+                else -> "Hindi mabuksan ang mic. Tiyaking may permission at walang ibang app na gumagamit nito."
+            }
+        }
+    }
+
+    fun disableMic() {
+        if (MicEngine.available) MicEngine.nativeStop()
+        micEnabled = false
+        micError = null
+    }
+
+    fun changeMicVolume(value: Float) {
+        micVolume = value
+        pushMicLevels()
+        settings.setMicLevels(micVolume, micReverb, micEcho)
+    }
+
+    fun changeMicReverb(value: Float) {
+        micReverb = value
+        pushMicLevels()
+        settings.setMicLevels(micVolume, micReverb, micEcho)
+    }
+
+    fun changeMicEcho(value: Float) {
+        micEcho = value
+        pushMicLevels()
+        settings.setMicLevels(micVolume, micReverb, micEcho)
+    }
+
+    /** Tinatawag kapag napunta sa background ang app: bitawan ang mic. */
+    fun onAppStopped() {
+        if (micEnabled) {
+            disableMic()
+            micResumeOnStart = true
+        }
+    }
+
     fun toggleVideo() {
         videoEnabled = !videoEnabled
         settings.setVideoEnabled(videoEnabled)
@@ -94,6 +164,7 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     override fun onCleared() {
+        if (MicEngine.available) MicEngine.nativeStop()
         player.release()
         super.onCleared()
     }
@@ -118,6 +189,10 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
         if (hasAccess && !started) {
             started = true
             loadCacheOrScan()
+        }
+        if (micResumeOnStart) {
+            micResumeOnStart = false
+            enableMic()
         }
     }
 

@@ -131,6 +131,7 @@ private fun LyricsView(ready: LoadState.Ready, song: Song, vm: KaraokeViewModel,
     val running = isCurrent && player.status == PlayerStatus.PLAYING
     val current = lyrics.lineIndexAt(position)
     val listState = rememberLazyListState()
+    var micOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(current, running) {
         if (running && current >= 0) listState.animateScrollToItem(maxOf(current - 1, 0))
@@ -156,6 +157,15 @@ private fun LyricsView(ready: LoadState.Ready, song: Song, vm: KaraokeViewModel,
         PlayerControls(player, vm.lyricsOffsetMs) { vm.changeLyricsOffset(it) }
     } else {
         Button(onClick = { vm.playNow(song) }) { Text("▶ I-play ngayon") }
+    }
+    if (isCurrent) {
+        TextButton(onClick = { micOpen = !micOpen }) {
+            Text(
+                (if (micOpen) "🎙 Itago ang mic" else "🎙 Mic echo/reverb") +
+                    (if (vm.micEnabled) " (naka-on)" else "")
+            )
+        }
+        if (micOpen) MicPanel(vm)
     }
     Spacer(Modifier.height(8.dp))
 

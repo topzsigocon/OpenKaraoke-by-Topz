@@ -1,5 +1,8 @@
 package com.topz.karaoke.audio
 
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.getValue
@@ -25,6 +28,7 @@ enum class PlayerStatus { IDLE, LOADING, PLAYING, PAUSED, ERROR }
 /** Ang estado at mga kontrol ng pagtugtog para sa UI. Gamitin lang sa main thread. */
 class Player(
     private val scope: CoroutineScope,
+    private val audioManager: AudioManager,
     /** Tinatawag sa background thread; ibinabalik ang path ng SoundFont na gagamitin. */
     private val soundFontProvider: () -> String?
 ) {
@@ -56,6 +60,52 @@ class Player(
     var onSongFinished: (() -> Unit)? = null
 
     private var loadJob: Job? = null
+    private var focusRequest: AudioFocusRequest? = null
+    private var resumeOnFocusGain = false
+
+    /** Titigil ang kanta kapag may tumawag o ibang app na tumutugtog; magpapatuloy kapag bumalik. */
+    private val focusListener = AudioManager.OnAudioFocusChangeListener { change ->
+        when (change) {
+            AudioManager.AUDIOFOCUS_LOSS -> {
+                resumeOnFocusGain = false
+                pauseForFocus()
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                resumeOnFocusGain = status == PlayerStatus.PLAYING
+                pauseForFocus()
+            }
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                if (resumeOnFocusGain) {
+                    resumeOnFocusGain = false
+                    if (status == PlayerStatus.PAUSED) togglePlayPause()
+                }
+            }
+            else -> Unit
+        }
+    }
+
+    private fun pauseForFocus() {
+        if (status == PlayerStatus.PLAYING) togglePlayPause()
+    }
+
+    private fun requestFocus() {
+        val request = focusRequest ?: AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build()
+            )
+            .setOnAudioFocusChangeListener(focusListener)
+            .build()
+            .also { focusRequest = it }
+        audioManager.requestAudioFocus(request)
+    }
+
+    private fun abandonFocus() {
+        resumeOnFocusGain = false
+        focusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
+    }
     private var ticker: Job? = null
 
     private class Prepared(val sequencer: MidiSequencer, val lyrics: Lyrics)
@@ -88,6 +138,7 @@ class Player(
                 engine.setTranspose(transpose)
                 engine.setTempoFactor(tempoPercent / 100.0)
                 for (ch in mutedChannels) engine.setMuted(ch, true)
+                requestFocus()
                 engine.play()
                 status = PlayerStatus.PLAYING
                 startTicker()
@@ -124,6 +175,7 @@ class Player(
                 status = PlayerStatus.PAUSED
             }
             PlayerStatus.PAUSED -> {
+                requestFocus()
                 engine.play()
                 status = PlayerStatus.PLAYING
                 startTicker()
@@ -137,6 +189,7 @@ class Player(
         loadJob?.cancel()
         ticker?.cancel()
         engine.stop()
+        abandonFocus()
         status = PlayerStatus.IDLE
         song = null
         lyrics = null
@@ -170,6 +223,7 @@ class Player(
     }
 
     fun release() {
+        abandonFocus()
         loadJob?.cancel()
         ticker?.cancel()
         engine.onFinished = null
@@ -188,6 +242,7 @@ class Player(
 
     private fun handleFinished() {
         if (status != PlayerStatus.PLAYING) return
+        abandonFocus()
         ticker?.cancel()
         positionMs = 0L
         status = PlayerStatus.IDLE

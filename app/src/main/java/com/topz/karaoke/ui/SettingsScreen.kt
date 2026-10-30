@@ -92,6 +92,8 @@ fun SettingsScreen(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
             Switch(checked = vm.videoEnabled, onCheckedChange = { vm.toggleVideo() })
         }
         Spacer(Modifier.height(16.dp))
+        MicPanel(vm)
+        Spacer(Modifier.height(16.dp))
         Spacer(Modifier.height(8.dp))
         Text("SoundFont na gagamitin", color = KColors.Gold, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))

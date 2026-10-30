@@ -44,6 +44,11 @@ class MainActivity : ComponentActivity() {
         vm.onResume()
     }
 
+    override fun onStop() {
+        super.onStop()
+        vm.onAppStopped()
+    }
+
     private fun requestAccess() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             startActivity(
