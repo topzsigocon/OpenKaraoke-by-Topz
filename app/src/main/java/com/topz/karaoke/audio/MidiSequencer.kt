@@ -16,9 +16,20 @@ class MidiSequencer(midi: MidiFile, val sampleRate: Int) {
 
     private class Ev(val frame: Long, val status: Int, val d1: Int, val d2: Int, val priority: Int)
 
+    private class Candidate(
+        val channel: Int,
+        val notes: Int,
+        val avgPitch: Double,
+        val chordRatio: Double,
+        val hinted: Boolean
+    )
+
     private val events: Array<Ev>
     val totalFrames: Long
     val channelInfos: List<ChannelInfo>
+
+    /** Hula kung aling channel ang melody (para sa karaoke). Null kung hindi matiyak. */
+    val melodyChannel: Int?
 
     /** Semitones (-12..12). Naaapektuhan ang mga bagong note; hindi ang drums (channel 10). */
     var transpose: Int = 0
@@ -63,18 +74,27 @@ class MidiSequencer(midi: MidiFile, val sampleRate: Int) {
         totalFrames = maxOf(if (events.isEmpty()) 0L else events[events.size - 1].frame, frameOf(midi.lengthTicks))
 
         val infos = ArrayList<ChannelInfo>()
+        val candidates = ArrayList<Candidate>()
         for (ch in 0 until 16) {
             var hasNotes = false
+            var noteCount = 0
+            var pitchSum = 0L
+            var chordCount = 0
             var program = -1
             var trackName: String? = null
             for (track in midi.tracks) {
                 var inTrack = false
+                var lastOnTick = -1L
                 for (e in track.events) {
                     if ((e.status and 0x0F) != ch) continue
                     val kind = e.status and 0xF0
                     if (kind == 0x90 && e.data2 > 0) {
                         hasNotes = true
                         inTrack = true
+                        noteCount++
+                        pitchSum += e.data1
+                        if (e.tick == lastOnTick) chordCount++
+                        lastOnTick = e.tick
                     } else if (kind == 0xC0 && program < 0) {
                         program = e.data1
                     }
@@ -89,8 +109,26 @@ class MidiSequencer(midi: MidiFile, val sampleRate: Int) {
                 "$trackName ($instrument)"
             }
             infos.add(ChannelInfo(ch, "${ch + 1} $label"))
+            if (ch != 9) {
+                val hinted = trackName != null && MELODY_HINT.containsMatchIn(trackName)
+                candidates.add(
+                    Candidate(ch, noteCount, pitchSum.toDouble() / noteCount, chordCount.toDouble() / noteCount, hinted)
+                )
+            }
         }
         channelInfos = infos
+        melodyChannel = pickMelody(candidates)
+    }
+
+    private fun pickMelody(list: List<Candidate>): Int? {
+        // 1) Kung may track na pinangalanang "Melody", "Vocal", atbp.
+        val hinted = list.filter { it.hinted && it.notes >= 8 }.maxByOrNull { it.notes }
+        if (hinted != null) return hinted.channel
+        // 2) Kung wala: isang linya lang ang tumutugtog (halos walang chord), mataas ang tono, at maraming note
+        return list
+            .filter { it.notes >= 20 && it.chordRatio <= 0.15 && it.avgPitch >= 58.0 }
+            .maxByOrNull { it.notes }
+            ?.channel
     }
 
     fun isMuted(channel: Int): Boolean = muted.getOrElse(channel) { false }
@@ -159,5 +197,9 @@ class MidiSequencer(midi: MidiFile, val sampleRate: Int) {
             sink.noteOff(ch, shifted)
             sounding[slot] = -1
         }
+    }
+
+    private companion object {
+        val MELODY_HINT = Regex("(?i)(melod|vocal|voice|vox|singer|lead|karaoke|lyric)")
     }
 }

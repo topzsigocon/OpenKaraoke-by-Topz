@@ -9,6 +9,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.topz.karaoke.data.Song
+import com.topz.karaoke.data.SongPrefs
+import com.topz.karaoke.data.SongPrefsStore
 import com.topz.karaoke.data.SongReader
 import com.topz.karaoke.midi.Lyrics
 import com.topz.karaoke.midi.LyricsExtractor
@@ -29,6 +31,7 @@ enum class PlayerStatus { IDLE, LOADING, PLAYING, PAUSED, ERROR }
 class Player(
     private val scope: CoroutineScope,
     private val audioManager: AudioManager,
+    private val songPrefs: SongPrefsStore,
     /** Tinatawag sa background thread; ibinabalik ang path ng SoundFont na gagamitin. */
     private val soundFontProvider: () -> String?
 ) {
@@ -54,6 +57,8 @@ class Player(
     var tempoPercent by mutableStateOf(100)
         private set
     var mutedChannels by mutableStateOf<Set<Int>>(emptySet())
+        private set
+    var melodyChannel by mutableStateOf<Int?>(null)
         private set
 
     /** Tinatawag kapag natapos ang kanta (para sa susunod sa queue). */
@@ -120,12 +125,18 @@ class Player(
         engine.stop()
 
         this.song = song
+        // Ibalik ang key/tempo/mute na ginamit mo sa kantang ito dati
+        val saved = songPrefs.load(song.key) ?: SongPrefs()
+        transpose = saved.transpose
+        tempoPercent = saved.tempoPercent
+        mutedChannels = saved.muted
         status = PlayerStatus.LOADING
         errorMessage = null
         positionMs = 0L
         durationMs = 0L
         lyrics = null
         channels = emptyList()
+        melodyChannel = null
 
         loadJob = scope.launch {
             try {
@@ -134,6 +145,7 @@ class Player(
                 lyrics = prepared.lyrics
                 durationMs = prepared.sequencer.durationMs
                 channels = prepared.sequencer.channelInfos
+                melodyChannel = prepared.sequencer.melodyChannel
                 // Ilapat ang mga setting (key, tempo, mute) na pinili na ng user
                 engine.setTranspose(transpose)
                 engine.setTempoFactor(tempoPercent / 100.0)
@@ -209,17 +221,25 @@ class Player(
     fun changeTranspose(delta: Int) {
         transpose = (transpose + delta).coerceIn(-12, 12)
         engine.setTranspose(transpose)
+        saveSettings()
     }
 
     fun changeTempo(deltaPercent: Int) {
         tempoPercent = (tempoPercent + deltaPercent).coerceIn(50, 150)
         engine.setTempoFactor(tempoPercent / 100.0)
+        saveSettings()
     }
 
     fun toggleMute(channel: Int) {
         val nowMuted = channel !in mutedChannels
         mutedChannels = if (nowMuted) mutedChannels + channel else mutedChannels - channel
         engine.setMuted(channel, nowMuted)
+        saveSettings()
+    }
+
+    private fun saveSettings() {
+        val current = song ?: return
+        songPrefs.save(current.key, SongPrefs(transpose, tempoPercent, mutedChannels))
     }
 
     fun release() {

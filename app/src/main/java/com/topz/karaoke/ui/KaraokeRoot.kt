@@ -1,5 +1,8 @@
 package com.topz.karaoke.ui
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,6 +35,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.topz.karaoke.audio.PlayerStatus
 import com.topz.karaoke.data.Song
 
@@ -43,6 +49,8 @@ fun KaraokeRoot(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
 
     // Back button: isara muna ang lyrics screen bago lumabas ng app.
     BackHandler(enabled = openSong != null) { openSong = null }
+    // Sa Karaoke Mode, ang Back ay nagbabalik lang ng normal na UI (hindi lumalabas ng app).
+    BackHandler(enabled = vm.karaokeMode) { vm.exitKaraokeMode() }
 
     // Huwag patayin ang screen habang tumutugtog.
     val view = LocalView.current
@@ -52,7 +60,35 @@ fun KaraokeRoot(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
         onDispose { view.keepScreenOn = false }
     }
 
+    // Sa Karaoke Mode, itago pati ang status bar at navigation bar ng phone (swipe para ipakita).
+    DisposableEffect(vm.karaokeMode) {
+        val window = view.context.findActivity()?.window
+        val controller = window?.let { WindowCompat.getInsetsController(it, view) }
+        if (vm.karaokeMode) {
+            controller?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller?.hide(WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller?.show(WindowInsetsCompat.Type.systemBars())
+        }
+        onDispose { controller?.show(WindowInsetsCompat.Type.systemBars()) }
+    }
+
     val barVisible = player.song != null && player.status != PlayerStatus.IDLE
+
+    if (vm.karaokeMode) {
+        Box(Modifier.fillMaxSize()) {
+            KaraokeScreen(vm)
+            FloatingController(
+                vm = vm,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .imePadding()
+                    .padding(end = 16.dp, bottom = 24.dp)
+            )
+        }
+        return
+    }
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Scaffold(
@@ -146,6 +182,7 @@ private fun NowPlayingBar(vm: KaraokeViewModel, onOpen: () -> Unit) {
             )
             Text(statusText, color = KColors.CreamDim, style = MaterialTheme.typography.bodySmall, maxLines = 1)
         }
+        TextButton(onClick = { vm.enterKaraokeMode() }) { Text("📺", fontSize = 22.sp) }
         TextButton(
             onClick = { player.togglePlayPause() },
             enabled = player.status == PlayerStatus.PLAYING || player.status == PlayerStatus.PAUSED
@@ -172,4 +209,13 @@ private fun AppHeader() {
             fontWeight = FontWeight.Bold
         )
     }
+}
+
+private fun Context.findActivity(): Activity? {
+    var ctx: Context = this
+    while (ctx is ContextWrapper) {
+        if (ctx is Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
 }

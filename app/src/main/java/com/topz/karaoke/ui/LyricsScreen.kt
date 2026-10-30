@@ -92,6 +92,9 @@ fun LyricsScreen(song: Song, vm: KaraokeViewModel, onBack: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Text("← Bumalik") }
             Spacer(Modifier.weight(1f))
+            if (isCurrent) {
+                TextButton(onClick = { vm.enterKaraokeMode() }) { Text("📺 Karaoke") }
+            }
             Button(onClick = { vm.enqueue(song) }) { Text("+ Queue") }
         }
         Text(
@@ -255,6 +258,15 @@ private fun PlayerControls(player: Player, syncMs: Int, onSyncChange: (Int) -> U
             onMinus = { onSyncChange(-25) },
             onPlus = { onSyncChange(25) }
         )
+
+        val melody = player.melodyChannel
+        if (melody != null) {
+            val melodyMuted = melody in player.mutedChannels
+            OutlinedButton(onClick = { player.toggleMute(melody) }) {
+                Text(if (melodyMuted) "🎤 Ibalik ang melody" else "🎤 I-mute ang melody (karaoke)")
+            }
+            Spacer(Modifier.height(4.dp))
+        }
 
         if (player.channels.isNotEmpty()) {
             Text(

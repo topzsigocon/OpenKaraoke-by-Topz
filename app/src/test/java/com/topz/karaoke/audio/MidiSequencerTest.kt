@@ -127,4 +127,43 @@ class MidiSequencerTest {
         assertEquals("1 Melody (Flute)", infos[0].label)
         assertEquals("10 Drums", infos[1].label)
     }
+
+    // ---- Hula sa melody channel ----
+
+    private fun notes(count: Int, ch: Int, key: Int): Array<ByteArray> =
+        Array(count) { noteOn(120, ch, key, 100) }
+
+    @Test
+    fun melodyChannelFromTrackName() {
+        val midi = MidiParser.parse(
+            smf(
+                track(trackName("Melody"), *notes(10, 0, 72), end()),
+                track(trackName("Piano"), *notes(30, 1, 60), end())
+            )
+        )
+        assertEquals(0, MidiSequencer(midi, 1000).melodyChannel)
+    }
+
+    @Test
+    fun melodyChannelByShapeWhenNoNames() {
+        val chords = ArrayList<ByteArray>()
+        repeat(13) {
+            chords.add(noteOn(120, 1, 60, 100))
+            chords.add(noteOn(0, 1, 64, 100)) // sabay na note = chord
+        }
+        val midi = MidiParser.parse(
+            smf(
+                track(*notes(25, 0, 72), end()),
+                track(*chords.toTypedArray(), end()),
+                track(*notes(30, 2, 40), end())
+            )
+        )
+        assertEquals(0, MidiSequencer(midi, 1000).melodyChannel)
+    }
+
+    @Test
+    fun noMelodyGuessForTinyOrChordOnlySongs() {
+        val midi = MidiParser.parse(smf(track(*notes(5, 0, 72), end())))
+        assertEquals(null, MidiSequencer(midi, 1000).melodyChannel)
+    }
 }

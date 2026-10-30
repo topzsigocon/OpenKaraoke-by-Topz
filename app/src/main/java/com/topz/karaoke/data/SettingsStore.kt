@@ -4,7 +4,7 @@ import android.content.Context
 import com.topz.karaoke.storage.FileKind
 
 /** Nagse-save ng mga folder na pinili ng user. Null ang ibig sabihin ay default. */
-class SettingsStore(context: Context) {
+class SettingsStore(context: Context) : SongPrefsStore {
     private val prefs = context.getSharedPreferences("openkaraoke", Context.MODE_PRIVATE)
 
     fun getFolder(kind: FileKind): String? = prefs.getString("folder_" + kind.name, null)
@@ -22,6 +22,13 @@ class SettingsStore(context: Context) {
         val editor = prefs.edit()
         if (path == null) editor.remove("active_soundfont") else editor.putString("active_soundfont", path)
         editor.apply()
+    }
+
+    override fun load(songKey: String): SongPrefs? =
+        SongPrefs.decode(prefs.getString("song:$songKey", null))
+
+    override fun save(songKey: String, prefs: SongPrefs) {
+        this.prefs.edit().putString("song:$songKey", prefs.encode()).apply()
     }
 
     /** Background video sa likod ng lyrics. */

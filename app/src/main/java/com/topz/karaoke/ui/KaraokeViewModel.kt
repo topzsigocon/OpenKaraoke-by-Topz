@@ -36,7 +36,7 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     private val queueSaveLock = Mutex()
 
     /** Ang audio player (SoundFont synth). */
-    val player = Player(viewModelScope, app.getSystemService(AudioManager::class.java)) { resolveSoundFont() }
+    val player = Player(viewModelScope, app.getSystemService(AudioManager::class.java), settings) { resolveSoundFont() }
 
     var hasAccess by mutableStateOf(storage.hasAccess())
         private set
@@ -61,6 +61,10 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     var videoEnabled by mutableStateOf(settings.getVideoEnabled())
         private set
     var lyricsOffsetMs by mutableStateOf(settings.getLyricsOffsetMs())
+        private set
+
+    /** Karaoke Mode: nakatago ang normal na UI. Hindi apektado ang pagtugtog. */
+    var karaokeMode by mutableStateOf(false)
         private set
 
     // ----- Mic echo/reverb -----
@@ -151,6 +155,18 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
             disableMic()
             micResumeOnStart = true
         }
+    }
+
+    fun enterKaraokeMode() {
+        karaokeMode = true
+    }
+
+    fun exitKaraokeMode() {
+        karaokeMode = false
+    }
+
+    fun toggleKaraokeMode() {
+        karaokeMode = !karaokeMode
     }
 
     fun toggleVideo() {
@@ -314,6 +330,15 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     fun removeFromQueue(index: Int) {
         if (index in queue.indices) {
             queue.removeAt(index)
+            persistQueue()
+        }
+    }
+
+    /** Ilipat sa itaas ng queue (susunod na tutugtog). */
+    fun moveToTop(index: Int) {
+        if (index in 1 until queue.size) {
+            val song = queue.removeAt(index)
+            queue.add(0, song)
             persistQueue()
         }
     }

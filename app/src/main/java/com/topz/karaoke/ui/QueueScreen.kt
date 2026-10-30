@@ -118,6 +118,9 @@ fun QueueScreen(vm: KaraokeViewModel) {
                             Text(sub, color = KColors.CreamDim, style = MaterialTheme.typography.bodySmall, maxLines = 1)
                         }
                     }
+                    if (index > 0) {
+                        TextButton(onClick = { vm.moveToTop(index) }) { Text("▲") }
+                    }
                     TextButton(onClick = { vm.playQueueItem(index) }) { Text("▶") }
                     TextButton(onClick = { vm.removeFromQueue(index) }) { Text("✕") }
                 }

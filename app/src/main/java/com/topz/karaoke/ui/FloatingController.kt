@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.topz.karaoke.audio.PlayerStatus
 import kotlin.math.roundToInt
 
 /**
@@ -122,6 +123,7 @@ private fun ControllerPanel(vm: KaraokeViewModel, onDrag: (Offset) -> Unit, onCl
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ModeChip("Numero", mode == 0, Modifier.weight(1f)) { mode = 0 }
                 ModeChip("Hanapin", mode == 1, Modifier.weight(1f)) { mode = 1 }
+                ModeChip("Kontrol", mode == 2, Modifier.weight(1f)) { mode = 2 }
             }
             Spacer(Modifier.height(10.dp))
 
@@ -184,7 +186,7 @@ private fun ControllerPanel(vm: KaraokeViewModel, onDrag: (Offset) -> Unit, onCl
                         }
                     }
                 }
-            } else {
+            } else if (mode == 1) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
@@ -220,6 +222,8 @@ private fun ControllerPanel(vm: KaraokeViewModel, onDrag: (Offset) -> Unit, onCl
                         }
                     }
                 }
+            } else {
+                ControlTab(vm)
             }
 
             val msg = message
@@ -278,4 +282,45 @@ private fun KeyButton(label: String, accent: Boolean, modifier: Modifier, onClic
             fontWeight = FontWeight.Bold
         )
     }
+}
+
+/** Kontrol ng pagtugtog sa loob ng bubble: pause/resume, susunod, stop, at Hide/Show UI. */
+@Composable
+private fun ControlTab(vm: KaraokeViewModel) {
+    val player = vm.player
+    val song = player.song
+
+    Text(
+        song?.title ?: "Walang tumutugtog",
+        color = KColors.Cream,
+        fontWeight = FontWeight.Bold,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.fillMaxWidth()
+    )
+    Text(
+        when (player.status) {
+            PlayerStatus.LOADING -> "Nilo-load..."
+            PlayerStatus.PLAYING -> "Tumutugtog • ${formatMs(player.positionMs)}"
+            PlayerStatus.PAUSED -> "Naka-pause • ${formatMs(player.positionMs)}"
+            PlayerStatus.ERROR -> "May error"
+            PlayerStatus.IDLE -> ""
+        },
+        color = KColors.CreamDim,
+        style = MaterialTheme.typography.bodySmall
+    )
+    Spacer(Modifier.height(8.dp))
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        KeyButton(if (player.status == PlayerStatus.PLAYING) "⏸" else "▶", accent = true, modifier = Modifier.weight(1f)) {
+            player.togglePlayPause()
+        }
+        KeyButton("⏭", accent = false, modifier = Modifier.weight(1f)) { vm.skip() }
+        KeyButton("⏹", accent = false, modifier = Modifier.weight(1f)) { player.stop() }
+    }
+    Spacer(Modifier.height(8.dp))
+    ModeChip(
+        if (vm.karaokeMode) "Ipakita ang UI" else "Itago ang UI (Karaoke Mode)",
+        false,
+        Modifier.fillMaxWidth()
+    ) { vm.toggleKaraokeMode() }
 }
