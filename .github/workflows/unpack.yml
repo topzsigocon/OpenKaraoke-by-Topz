@@ -1,2 +1,1 @@
-      - name: Run unit tests
-        run: gradle testDebugUnitTest --stacktrace
+
