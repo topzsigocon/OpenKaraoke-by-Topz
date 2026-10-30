@@ -1,3 +1,5 @@
+import java.net.URI
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -101,7 +103,7 @@ val defaultSoundFont = layout.projectDirectory.file("src/main/assets/default.sf2
 fun download(url: String, target: File) {
     target.parentFile.mkdirs()
     val part = File(target.path + ".part")
-    java.net.URI(url).toURL().openStream().use { input ->
+    URI(url).toURL().openStream().use { input ->
         part.outputStream().use { out -> input.copyTo(out) }
     }
     part.renameTo(target)

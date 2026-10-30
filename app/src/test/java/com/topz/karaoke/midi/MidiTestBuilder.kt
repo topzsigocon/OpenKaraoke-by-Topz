@@ -48,4 +48,16 @@ object MidiTestBuilder {
         for (t in tracks) out += t
         return out
     }
+
+    fun noteOn(delta: Int, ch: Int, key: Int, vel: Int): ByteArray =
+        vlq(delta) + byteArrayOf((0x90 or ch).toByte(), key.toByte(), vel.toByte())
+
+    fun noteOff(delta: Int, ch: Int, key: Int): ByteArray =
+        vlq(delta) + byteArrayOf((0x80 or ch).toByte(), key.toByte(), 0)
+
+    fun program(delta: Int, ch: Int, prog: Int): ByteArray =
+        vlq(delta) + byteArrayOf((0xC0 or ch).toByte(), prog.toByte())
+
+    fun cc(delta: Int, ch: Int, ctrl: Int, value: Int): ByteArray =
+        vlq(delta) + byteArrayOf((0xB0 or ch).toByte(), ctrl.toByte(), value.toByte())
 }
