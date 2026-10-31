@@ -12,6 +12,9 @@ import com.topz.karaoke.audio.DefaultSoundFont
 import com.topz.karaoke.audio.MicEngine
 import com.topz.karaoke.audio.Player
 import com.topz.karaoke.data.IndexCache
+import com.topz.karaoke.data.KaraokeLayout
+import com.topz.karaoke.data.LyricsAlignment
+import com.topz.karaoke.data.LyricsPosition
 import com.topz.karaoke.data.SettingsStore
 import com.topz.karaoke.data.Song
 import com.topz.karaoke.data.SongFileNameParser
@@ -65,6 +68,12 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Karaoke Mode: nakatago ang normal na UI. Hindi apektado ang pagtugtog. */
     var karaokeMode by mutableStateOf(false)
+        private set
+    var karaokeLayout by mutableStateOf(settings.getKaraokeLayout())
+        private set
+    var lyricsPosition by mutableStateOf(settings.getLyricsPosition())
+        private set
+    var lyricsAlignment by mutableStateOf(settings.getLyricsAlignment())
         private set
 
     // ----- Mic echo/reverb -----
@@ -155,6 +164,21 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
             disableMic()
             micResumeOnStart = true
         }
+    }
+
+    fun chooseKaraokeLayout(value: KaraokeLayout) {
+        karaokeLayout = value
+        settings.setKaraokeLayout(value)
+    }
+
+    fun chooseLyricsPosition(value: LyricsPosition) {
+        lyricsPosition = value
+        settings.setLyricsPosition(value)
+    }
+
+    fun chooseLyricsAlignment(value: LyricsAlignment) {
+        lyricsAlignment = value
+        settings.setLyricsAlignment(value)
     }
 
     fun enterKaraokeMode() {

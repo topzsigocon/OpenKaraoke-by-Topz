@@ -45,6 +45,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.topz.karaoke.audio.PlayerStatus
+import com.topz.karaoke.data.KaraokeLayout
+import com.topz.karaoke.data.LyricsAlignment
+import com.topz.karaoke.data.LyricsPosition
 import com.topz.karaoke.midi.LyricLine
 import com.topz.karaoke.midi.Lyrics
 
@@ -87,7 +90,14 @@ fun KaraokeScreen(vm: KaraokeViewModel) {
             } else if (lyrics.lines.isEmpty()) {
                 CenterMessage("♪ ${song.title} ♪", "Walang lyrics ang kantang ito.")
             } else {
-                KaraokeLyrics(lyrics, position)
+                // Position: Center (default) o Bottom
+                val atBottom = vm.lyricsPosition == LyricsPosition.BOTTOM
+                Box(
+                    Modifier.fillMaxSize().padding(bottom = if (atBottom) 64.dp else 0.dp),
+                    contentAlignment = if (atBottom) Alignment.BottomCenter else Alignment.Center
+                ) {
+                    KaraokeLyrics(lyrics, position, vm.karaokeLayout, vm.lyricsAlignment)
+                }
             }
         }
 
@@ -105,23 +115,52 @@ fun KaraokeScreen(vm: KaraokeViewModel) {
 }
 
 @Composable
-private fun KaraokeLyrics(lyrics: Lyrics, position: Long) {
+internal fun KaraokeLyrics(
+    lyrics: Lyrics,
+    position: Long,
+    layout: KaraokeLayout,
+    alignment: LyricsAlignment,
+    fontScale: Float = 1f
+) {
     val current = lyrics.lineIndexAt(position)
-    // Bago magsimula, ipinapakita na ang unang linya para makapaghanda ang kumakanta.
-    val index = maxOf(current, 0)
-    val line = lyrics.lines[index]
-    val next = lyrics.lines.getOrNull(index + 1)
+    val opposing = alignment == LyricsAlignment.OPPOSING
+    val firstAlign = if (opposing) TextAlign.Start else TextAlign.Center
+    val secondAlign = if (opposing) TextAlign.End else TextAlign.Center
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        KaraokeLine(line, position, scale = 1f, highlight = current >= 0)
-        Spacer(Modifier.height(28.dp))
-        if (next != null) KaraokeLine(next, position, scale = 0.6f, highlight = false)
+        if (layout == KaraokeLayout.TWO_LINE) {
+            // Dalawang linya ang nakikita; nagpapalitan ang itaas at ibaba habang tumutugtog.
+            val plan = KaraokeLines.twoLine(current, lyrics.lines.size)
+            plan.topIndex?.let { i ->
+                KaraokeLine(lyrics.lines[i], position, 1f, highlight = i == current, align = firstAlign, fontScale = fontScale)
+            }
+            Spacer(Modifier.height((20 * fontScale).dp))
+            plan.bottomIndex?.let { i ->
+                KaraokeLine(lyrics.lines[i], position, 1f, highlight = i == current, align = secondAlign, fontScale = fontScale)
+            }
+        } else {
+            // Default: kasalukuyang linya, at ang susunod na mas maliit sa ibaba.
+            // Bago magsimula, ipinapakita na ang unang linya para makapaghanda ang kumakanta.
+            val index = maxOf(current, 0)
+            KaraokeLine(lyrics.lines[index], position, 1f, highlight = current >= 0, align = firstAlign, fontScale = fontScale)
+            Spacer(Modifier.height((28 * fontScale).dp))
+            lyrics.lines.getOrNull(index + 1)?.let {
+                KaraokeLine(it, position, 0.6f, highlight = false, align = secondAlign, fontScale = fontScale)
+            }
+        }
     }
 }
 
 /** Buong linya na laging nakikita. Ang mga salitang nakanta na ay ginto; ang iba ay puti. */
 @Composable
-private fun KaraokeLine(line: LyricLine, position: Long, scale: Float, highlight: Boolean) {
+private fun KaraokeLine(
+    line: LyricLine,
+    position: Long,
+    scale: Float,
+    highlight: Boolean,
+    align: TextAlign = TextAlign.Center,
+    fontScale: Float = 1f
+) {
     val chars = line.text.length
     val baseSize = when {
         chars <= 24 -> 40f
@@ -141,9 +180,9 @@ private fun KaraokeLine(line: LyricLine, position: Long, scale: Float, highlight
     Text(
         text = text,
         style = TextStyle(
-            fontSize = (baseSize * scale).sp,
+            fontSize = (baseSize * scale * fontScale).sp,
             fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
+            textAlign = align,
             shadow = Shadow(Color.Black, Offset(2f, 2f), 6f)
         ),
         modifier = Modifier.fillMaxWidth()

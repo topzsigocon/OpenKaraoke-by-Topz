@@ -57,4 +57,26 @@ class SettingsStore(context: Context) : SongPrefsStore {
             .putFloat("mic_echo", echo)
             .apply()
     }
+
+    // ---- Mga option ng Karaoke Mode (default = kasalukuyang ayos) ----
+    fun getKaraokeLayout(): KaraokeLayout =
+        KaraokeLayout.values().firstOrNull { it.name == prefs.getString("k_layout", null) } ?: KaraokeLayout.DEFAULT
+
+    fun setKaraokeLayout(value: KaraokeLayout) {
+        prefs.edit().putString("k_layout", value.name).apply()
+    }
+
+    fun getLyricsPosition(): LyricsPosition =
+        LyricsPosition.values().firstOrNull { it.name == prefs.getString("k_position", null) } ?: LyricsPosition.CENTER
+
+    fun setLyricsPosition(value: LyricsPosition) {
+        prefs.edit().putString("k_position", value.name).apply()
+    }
+
+    fun getLyricsAlignment(): LyricsAlignment =
+        LyricsAlignment.values().firstOrNull { it.name == prefs.getString("k_alignment", null) } ?: LyricsAlignment.CENTERED
+
+    fun setLyricsAlignment(value: LyricsAlignment) {
+        prefs.edit().putString("k_alignment", value.name).apply()
+    }
 }

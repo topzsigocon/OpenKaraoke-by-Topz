@@ -1,6 +1,8 @@
 package com.topz.karaoke.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,6 +31,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.topz.karaoke.storage.FileKind
+import com.topz.karaoke.midi.Lyrics
+import com.topz.karaoke.midi.LyricWord
+import com.topz.karaoke.midi.LyricLine
+import com.topz.karaoke.data.LyricsPosition
+import com.topz.karaoke.data.LyricsAlignment
+import com.topz.karaoke.data.KaraokeLayout
+import androidx.compose.ui.graphics.Brush
 
 @Composable
 fun SettingsScreen(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
@@ -92,6 +101,48 @@ fun SettingsScreen(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
             Switch(checked = vm.videoEnabled, onCheckedChange = { vm.toggleVideo() })
         }
         Spacer(Modifier.height(16.dp))
+        Text("Karaoke Mode", color = KColors.Gold, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Ang Default ang kasalukuyang ayos. Binabago lang ng mga option dito ang itsura ng Karaoke Mode.",
+            color = KColors.CreamDim,
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(Modifier.height(8.dp))
+        KaraokePreview(vm.karaokeLayout, vm.lyricsPosition, vm.lyricsAlignment)
+        Spacer(Modifier.height(12.dp))
+        ChoiceRow(
+            title = "Layout ng lyrics",
+            options = listOf(KaraokeLayout.DEFAULT to "Default", KaraokeLayout.TWO_LINE to "Two-line"),
+            selected = vm.karaokeLayout,
+            onSelect = { vm.chooseKaraokeLayout(it) }
+        )
+        Text(
+            "Default: kasalukuyang linya, at ang susunod na mas maliit sa ibaba. " +
+                "Two-line: dalawang linya ang nakikita at nagpapalitan.",
+            color = KColors.CreamDim,
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(Modifier.height(12.dp))
+        ChoiceRow(
+            title = "Lyrics position",
+            options = listOf(LyricsPosition.CENTER to "Center", LyricsPosition.BOTTOM to "Bottom"),
+            selected = vm.lyricsPosition,
+            onSelect = { vm.chooseLyricsPosition(it) }
+        )
+        Spacer(Modifier.height(12.dp))
+        ChoiceRow(
+            title = "Lyrics alignment",
+            options = listOf(LyricsAlignment.CENTERED to "Centered", LyricsAlignment.OPPOSING to "Opposing"),
+            selected = vm.lyricsAlignment,
+            onSelect = { vm.chooseLyricsAlignment(it) }
+        )
+        Text(
+            "Opposing: ang unang linya ay sa kaliwa at ang pangalawa ay sa kanan.",
+            color = KColors.CreamDim,
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(Modifier.height(20.dp))
+
         MicPanel(vm)
         Spacer(Modifier.height(16.dp))
         Spacer(Modifier.height(8.dp))
@@ -177,5 +228,60 @@ private fun SoundFontRow(name: String, selected: Boolean, onClick: () -> Unit) {
     ) {
         Text(if (selected) "◉" else "○", color = KColors.Gold)
         Text("  $name", color = if (selected) KColors.Cream else KColors.CreamDim)
+    }
+}
+
+@Composable
+private fun <T> ChoiceRow(title: String, options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
+    Text(title, color = KColors.Cream, fontWeight = FontWeight.Bold)
+    Spacer(Modifier.height(4.dp))
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for ((value, label) in options) {
+            val isSelected = value == selected
+            Box(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (isSelected) KColors.Gold else KColors.NavyLight)
+                    .clickable { onSelect(value) }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    label,
+                    color = if (isSelected) KColors.Navy else KColors.Cream,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+    Spacer(Modifier.height(4.dp))
+}
+
+/** Maliit na preview ng napiling ayos, gamit ang sample na lyrics. */
+@Composable
+private fun KaraokePreview(layout: KaraokeLayout, position: LyricsPosition, alignment: LyricsAlignment) {
+    val sample = remember {
+        Lyrics(
+            lines = listOf(
+                LyricLine(listOf(LyricWord(0, "Sample "), LyricWord(500, "lyrics "), LyricWord(1000, "line one"))),
+                LyricLine(listOf(LyricWord(2000, "Next line "), LyricWord(2500, "preview"))),
+                LyricLine(listOf(LyricWord(4000, "Third line")))
+            ),
+            info = emptyList(),
+            source = Lyrics.Source.LYRIC_EVENTS,
+            durationMs = 6000
+        )
+    }
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(150.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Brush.verticalGradient(listOf(KColors.Navy, KColors.NavyLight)))
+            .padding(12.dp),
+        contentAlignment = if (position == LyricsPosition.BOTTOM) Alignment.BottomCenter else Alignment.Center
+    ) {
+        KaraokeLyrics(sample, 700L, layout, alignment, fontScale = 0.45f)
     }
 }
