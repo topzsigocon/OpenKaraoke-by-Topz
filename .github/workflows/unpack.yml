@@ -29,6 +29,16 @@ jobs:
             unzip -o "$z" -x ".github/*"
             git rm -q -f "$z"
           done
+          # Burahin ang mga path na nakalista sa REMOVE.txt (isa bawat linya). Hindi pinapayagan ang .git*, .., at absolute path.
+          if [ -f REMOVE.txt ]; then
+            while IFS= read -r path || [ -n "$path" ]; do
+              case "$path" in
+                ''|'#'*|.git*|*..*|/*) continue ;;
+              esac
+              git rm -r -q --ignore-unmatch -- "$path"
+            done < REMOVE.txt
+            rm -f REMOVE.txt
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
