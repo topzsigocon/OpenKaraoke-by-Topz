@@ -86,4 +86,11 @@ class SettingsStore(context: Context) : SongPrefsStore {
     fun setIntroSeconds(value: Int) {
         prefs.edit().putInt("intro_seconds", value).apply()
     }
+
+    /** Kusang pumapasok sa Karaoke Mode kapag nagsimula ang kanta. Naka-off bilang default. */
+    fun getAutoKaraoke(): Boolean = prefs.getBoolean("auto_karaoke", false)
+
+    fun setAutoKaraoke(value: Boolean) {
+        prefs.edit().putBoolean("auto_karaoke", value).apply()
+    }
 }

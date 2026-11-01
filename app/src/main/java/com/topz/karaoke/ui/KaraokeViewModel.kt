@@ -17,6 +17,7 @@ import com.topz.karaoke.data.LyricsAlignment
 import com.topz.karaoke.data.LyricsPosition
 import com.topz.karaoke.data.SettingsStore
 import com.topz.karaoke.data.Song
+import com.topz.karaoke.data.SongLists
 import com.topz.karaoke.data.SongFileNameParser
 import com.topz.karaoke.data.ZipSongScanner
 import com.topz.karaoke.storage.FileKind
@@ -37,6 +38,8 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     private val cacheFile = File(app.filesDir, "song_index.tsv")
     private val queueFile = File(app.filesDir, "queue.tsv")
     private val queueSaveLock = Mutex()
+    private val historyFile = File(app.filesDir, "history.tsv")
+    private val favoritesFile = File(app.filesDir, "favorites.tsv")
 
     /** Ang audio player (SoundFont synth). */
     val player = Player(viewModelScope, app.getSystemService(AudioManager::class.java), settings) { resolveSoundFont() }
@@ -66,6 +69,8 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     var lyricsOffsetMs by mutableStateOf(settings.getLyricsOffsetMs())
         private set
     var introSeconds by mutableStateOf(settings.getIntroSeconds())
+        private set
+    var autoKaraoke by mutableStateOf(settings.getAutoKaraoke())
         private set
 
     /** Karaoke Mode: nakatago ang normal na UI. Hindi apektado ang pagtugtog. */
@@ -97,6 +102,14 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
 
     val queue = mutableStateListOf<Song>()
 
+    /** Mga kinanta kamakailan (pinakabago ang una) at mga paborito. Naka-save sa file. */
+    var history by mutableStateOf<List<Song>>(emptyList())
+        private set
+    var favorites by mutableStateOf<List<Song>>(emptyList())
+        private set
+    var favoriteKeys by mutableStateOf<Set<String>>(emptySet())
+        private set
+
     private var byNumber: Map<Int, Song> = emptyMap()
     private var started = false
 
@@ -104,6 +117,11 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
         player.onSongFinished = { playNextFromQueue() }
         // Ibalik ang queue na na-save noong nakaraang gamit
         IndexCache.load(queueFile, "queue")?.let { queue.addAll(it) }
+        IndexCache.load(historyFile, "history")?.let { history = it }
+        IndexCache.load(favoritesFile, "favorites")?.let { list ->
+            favorites = list
+            favoriteKeys = list.map { it.key }.toSet()
+        }
     }
 
     private fun persistQueue() {
@@ -183,6 +201,11 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
         settings.setLyricsAlignment(value)
     }
 
+    fun toggleAutoKaraoke() {
+        autoKaraoke = !autoKaraoke
+        settings.setAutoKaraoke(autoKaraoke)
+    }
+
     fun changeIntroSeconds(delta: Int) {
         introSeconds = (introSeconds + delta).coerceIn(0, 10)
         settings.setIntroSeconds(introSeconds)
@@ -190,7 +213,38 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Sa Karaoke Mode, may pahinga muna (at ipinapakita ang pamagat) bago magsimula ang kanta. */
     private fun startSong(song: Song) {
+        // Kung naka-on ang awtomatikong Karaoke Mode, pumasok bago magsimula para lumabas ang pahinga at pamagat.
+        if (autoKaraoke) karaokeMode = true
+        recordHistory(song)
         player.start(song, if (karaokeMode) introSeconds * 1000L else 0L)
+    }
+
+    // ----- History at Favorites -----
+
+    private fun persistList(file: File, signature: String, list: List<Song>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            queueSaveLock.withLock { IndexCache.save(file, signature, list) }
+        }
+    }
+
+    private fun recordHistory(song: Song) {
+        val updated = SongLists.pushFront(history, song, 100)
+        history = updated
+        persistList(historyFile, "history", updated)
+    }
+
+    fun clearHistory() {
+        history = emptyList()
+        persistList(historyFile, "history", emptyList())
+    }
+
+    fun isFavorite(song: Song): Boolean = song.key in favoriteKeys
+
+    fun toggleFavorite(song: Song) {
+        val updated = SongLists.toggle(favorites, song)
+        favorites = updated
+        favoriteKeys = updated.map { it.key }.toSet()
+        persistList(favoritesFile, "favorites", updated)
     }
 
     fun enterKaraokeMode() {
@@ -350,10 +404,10 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun findByNumber(n: Int): Song? = byNumber[n]
 
-    fun search(query: String, limit: Int = 300): List<Song> {
+    fun search(query: String, limit: Int = 300, source: List<Song> = songs): List<Song> {
         val q = query.trim().lowercase()
-        if (q.isEmpty()) return songs.take(limit)
-        return songs.asSequence().filter { it.searchKey.contains(q) }.take(limit).toList()
+        if (q.isEmpty()) return source.take(limit)
+        return source.asSequence().filter { it.searchKey.contains(q) }.take(limit).toList()
     }
 
     // ----- Queue -----

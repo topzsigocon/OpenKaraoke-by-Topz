@@ -158,6 +158,18 @@ fun SettingsScreen(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
             color = KColors.CreamDim,
             style = MaterialTheme.typography.bodySmall
         )
+        Spacer(Modifier.height(12.dp))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Awtomatikong Karaoke Mode", color = KColors.Cream, fontWeight = FontWeight.Bold)
+                Text(
+                    "Kusang papasok sa Karaoke Mode kapag nagsimula ang kanta, kasama ang pahinga at pamagat.",
+                    color = KColors.CreamDim,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Switch(checked = vm.autoKaraoke, onCheckedChange = { vm.toggleAutoKaraoke() })
+        }
         Spacer(Modifier.height(20.dp))
 
         MicPanel(vm)

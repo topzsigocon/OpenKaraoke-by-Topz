@@ -92,6 +92,9 @@ fun LyricsScreen(song: Song, vm: KaraokeViewModel, onBack: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Text("← Bumalik") }
             Spacer(Modifier.weight(1f))
+            TextButton(onClick = { vm.toggleFavorite(song) }) {
+                Text(if (vm.isFavorite(song)) "★" else "☆", fontSize = 22.sp)
+            }
             if (isCurrent) {
                 TextButton(onClick = { vm.enterKaraokeMode() }) { Text("📺 Karaoke") }
             }
