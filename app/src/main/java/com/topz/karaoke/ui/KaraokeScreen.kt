@@ -48,6 +48,7 @@ import com.topz.karaoke.audio.PlayerStatus
 import com.topz.karaoke.data.KaraokeLayout
 import com.topz.karaoke.data.LyricsAlignment
 import com.topz.karaoke.data.LyricsPosition
+import com.topz.karaoke.data.Song
 import com.topz.karaoke.midi.LyricLine
 import com.topz.karaoke.midi.Lyrics
 
@@ -85,6 +86,8 @@ fun KaraokeScreen(vm: KaraokeViewModel) {
                 CenterMessage("🎤 OpenKaraoke", "Pindutin ang bubble (123) at i-type ang numero ng kanta.")
             } else if (player.status == PlayerStatus.ERROR) {
                 CenterMessage("May error", player.errorMessage ?: "")
+            } else if (player.introActive) {
+                IntroCard(song)
             } else if (lyrics == null) {
                 CenterMessage(song.title, "Nilo-load...")
             } else if (lyrics.lines.isEmpty()) {
@@ -106,7 +109,23 @@ fun KaraokeScreen(vm: KaraokeViewModel) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             OverlayChip("☰ UI", gold = false) { vm.exitKaraokeMode() }
-            Spacer(Modifier.weight(1f))
+            // Maliit na pamagat ng kasalukuyang kanta (nakatago habang ipinapakita ang malaking pamagat sa intro)
+            Box(Modifier.weight(1f).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
+                if (song != null && !player.introActive) {
+                    Text(
+                        song.title,
+                        color = Color.White.copy(alpha = 0.85f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            shadow = Shadow(Color.Black, Offset(1f, 1f), 4f)
+                        )
+                    )
+                }
+            }
             OverlayChip("QUEUE: %02d".format(vm.queue.size), gold = true) { showQueue = true }
         }
     }
@@ -268,6 +287,35 @@ private fun QueuePeekDialog(vm: KaraokeViewModel, onDismiss: () -> Unit) {
                 }
                 TextButton(onClick = onDismiss) { Text("Isara") }
             }
+        }
+    }
+}
+
+/** Ipinapakita habang naghihintay bago magsimula ang kanta: pamagat (pinakamalaki), artist, tapos numero. */
+@Composable
+private fun IntroCard(song: Song) {
+    val shadow = Shadow(Color.Black, Offset(2f, 2f), 6f)
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            song.title,
+            color = Color.White,
+            style = TextStyle(fontSize = 46.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, shadow = shadow)
+        )
+        if (song.artist != null) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                song.artist,
+                color = KColors.Cream,
+                style = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, shadow = shadow)
+            )
+        }
+        if (song.number != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "No. " + song.number.toString().padStart(5, '0'),
+                color = KColors.CreamDim,
+                style = TextStyle(fontSize = 20.sp, textAlign = TextAlign.Center, shadow = shadow)
+            )
         }
     }
 }

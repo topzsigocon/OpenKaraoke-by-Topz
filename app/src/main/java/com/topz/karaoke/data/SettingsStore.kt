@@ -79,4 +79,11 @@ class SettingsStore(context: Context) : SongPrefsStore {
     fun setLyricsAlignment(value: LyricsAlignment) {
         prefs.edit().putString("k_alignment", value.name).apply()
     }
+
+    /** Pahinga (segundo) bago magsimula ang kanta sa Karaoke Mode. 0 = walang pahinga. */
+    fun getIntroSeconds(): Int = prefs.getInt("intro_seconds", 3)
+
+    fun setIntroSeconds(value: Int) {
+        prefs.edit().putInt("intro_seconds", value).apply()
+    }
 }

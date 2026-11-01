@@ -61,6 +61,10 @@ class Player(
     var melodyChannel by mutableStateOf<Int?>(null)
         private set
 
+    /** True habang naghihintay (pahinga) bago magsimula ang kanta. */
+    var introActive by mutableStateOf(false)
+        private set
+
     /** Tinatawag kapag natapos ang kanta (para sa susunod sa queue). */
     var onSongFinished: (() -> Unit)? = null
 
@@ -119,10 +123,12 @@ class Player(
         engine.onFinished = { mainHandler.post { handleFinished() } }
     }
 
-    fun start(song: Song) {
+    /** [introMs] > 0: maghihintay muna ng ganoong katagal (ipinapakita ang pamagat) bago magsimula ang tunog. */
+    fun start(song: Song, introMs: Long = 0L) {
         loadJob?.cancel()
         ticker?.cancel()
         engine.stop()
+        introActive = false
 
         this.song = song
         // Ibalik ang key/tempo/mute na ginamit mo sa kantang ito dati
@@ -151,8 +157,13 @@ class Player(
                 engine.setTempoFactor(tempoPercent / 100.0)
                 for (ch in mutedChannels) engine.setMuted(ch, true)
                 requestFocus()
-                engine.play()
                 status = PlayerStatus.PLAYING
+                if (introMs > 0L) {
+                    introActive = true
+                    delay(introMs)
+                    introActive = false
+                }
+                engine.play()
                 startTicker()
             } catch (e: CancellationException) {
                 throw e
@@ -182,6 +193,11 @@ class Player(
     fun togglePlayPause() {
         when (status) {
             PlayerStatus.PLAYING -> {
+                if (introActive) {
+                    // Pinindot ang pause habang naghihintay: itigil ang paghihintay; ang resume ay magsisimula na ng kanta.
+                    loadJob?.cancel()
+                    introActive = false
+                }
                 engine.pause()
                 ticker?.cancel()
                 status = PlayerStatus.PAUSED
@@ -199,6 +215,7 @@ class Player(
     /** Humihinto at nililinis ang kasalukuyang kanta. */
     fun stop() {
         loadJob?.cancel()
+        introActive = false
         ticker?.cancel()
         engine.stop()
         abandonFocus()

@@ -141,6 +141,23 @@ fun SettingsScreen(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
             color = KColors.CreamDim,
             style = MaterialTheme.typography.bodySmall
         )
+        Spacer(Modifier.height(12.dp))
+        Text("Pahinga bago magsimula ang kanta", color = KColors.Cream, fontWeight = FontWeight.Bold)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = { vm.changeIntroSeconds(-1) }) { Text("−") }
+            Text(
+                if (vm.introSeconds == 0) "Walang pahinga" else "${vm.introSeconds} segundo",
+                color = KColors.Gold,
+                fontWeight = FontWeight.Bold
+            )
+            TextButton(onClick = { vm.changeIntroSeconds(1) }) { Text("+") }
+        }
+        Text(
+            "Habang naghihintay, ipinapakita sa gitna ang pamagat, artist at numero ng kanta. " +
+                "Sa Karaoke Mode lang ito; 0 ang walang pahinga.",
+            color = KColors.CreamDim,
+            style = MaterialTheme.typography.bodySmall
+        )
         Spacer(Modifier.height(20.dp))
 
         MicPanel(vm)

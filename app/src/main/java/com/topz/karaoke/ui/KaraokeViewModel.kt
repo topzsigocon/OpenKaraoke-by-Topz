@@ -65,6 +65,8 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var lyricsOffsetMs by mutableStateOf(settings.getLyricsOffsetMs())
         private set
+    var introSeconds by mutableStateOf(settings.getIntroSeconds())
+        private set
 
     /** Karaoke Mode: nakatago ang normal na UI. Hindi apektado ang pagtugtog. */
     var karaokeMode by mutableStateOf(false)
@@ -179,6 +181,16 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     fun chooseLyricsAlignment(value: LyricsAlignment) {
         lyricsAlignment = value
         settings.setLyricsAlignment(value)
+    }
+
+    fun changeIntroSeconds(delta: Int) {
+        introSeconds = (introSeconds + delta).coerceIn(0, 10)
+        settings.setIntroSeconds(introSeconds)
+    }
+
+    /** Sa Karaoke Mode, may pahinga muna (at ipinapakita ang pamagat) bago magsimula ang kanta. */
+    private fun startSong(song: Song) {
+        player.start(song, if (karaokeMode) introSeconds * 1000L else 0L)
     }
 
     fun enterKaraokeMode() {
@@ -375,14 +387,14 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     // ----- Pagtugtog -----
 
     fun playNow(song: Song) {
-        player.start(song)
+        startSong(song)
     }
 
     fun playQueueItem(index: Int) {
         if (index !in queue.indices) return
         val song = queue.removeAt(index)
         persistQueue()
-        player.start(song)
+        startSong(song)
     }
 
     /** Susunod sa queue; kung wala na, hihinto ang player. */
@@ -390,7 +402,7 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
         if (queue.isNotEmpty()) {
             val song = queue.removeAt(0)
             persistQueue()
-            player.start(song)
+            startSong(song)
         } else {
             player.stop()
         }

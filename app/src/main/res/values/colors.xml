@@ -2,4 +2,6 @@
 <resources>
     <color name="navy">#FF0A1633</color>
     <color name="gold">#FFF2C14E</color>
+    <!-- Kapareho ng background ng icon artwork -->
+    <color name="ic_launcher_background">#FF022261</color>
 </resources>
