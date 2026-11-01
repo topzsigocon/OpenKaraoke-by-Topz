@@ -24,6 +24,7 @@ class AudioEngine {
     private var playing = false
     private var released = false
     private var loadedSoundFont: String? = null
+    private var voiceLimit = 64
     private var thread: Thread? = null
 
     @Volatile
@@ -42,7 +43,16 @@ class AudioEngine {
         } else {
             val ok = NativeSynth.available && NativeSynth.nativeLoad(path, sampleRate, GAIN_DB)
             loadedSoundFont = if (ok) path else null
+            if (ok) NativeSynth.nativeSetMaxVoices(voiceLimit)
             ok
+        }
+    }
+
+    /** Limitahan ang sabay-sabay na note (Performance mode). Ilalapat din pagkatapos mag-load ng SoundFont. */
+    fun applyVoiceLimit(count: Int) {
+        lock.withLock {
+            voiceLimit = count
+            if (NativeSynth.available && loadedSoundFont != null) NativeSynth.nativeSetMaxVoices(count)
         }
     }
 

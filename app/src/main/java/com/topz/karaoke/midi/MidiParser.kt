@@ -14,7 +14,8 @@ internal object TextDecoder {
             Charsets.ISO_8859_1
         }
 
-    fun decode(bytes: ByteArray): String {
+    fun decode(bytes: ByteArray, forced: Charset? = null): String {
+        if (forced != null) return String(bytes, forced)
         val decoder = Charsets.UTF_8.newDecoder()
             .onMalformedInput(CodingErrorAction.REPORT)
             .onUnmappableCharacter(CodingErrorAction.REPORT)
@@ -72,7 +73,8 @@ private class ByteReader(private val data: ByteArray, var pos: Int, private val 
  */
 object MidiParser {
 
-    fun parse(data: ByteArray): MidiFile {
+    /** [textCharset]: pilitin ang encoding ng mga text/lyrics; null = awtomatiko (UTF-8, kung hindi ay Windows-1252). */
+    fun parse(data: ByteArray, textCharset: Charset? = null): MidiFile {
         val start = indexOfHeader(data)
         if (start < 0) throw MidiParseException("Walang MThd header; hindi ito MIDI file")
         var pos = start + 4
@@ -135,9 +137,9 @@ object MidiParser {
                                     (payload[2].toInt() and 0xFF)
                                 tempos.add(TempoChange(tick, micros))
                             }
-                            type == 0x03 && name == null -> name = TextDecoder.decode(payload)
+                            type == 0x03 && name == null -> name = TextDecoder.decode(payload, textCharset)
                             type == MidiFile.KIND_TEXT || type == MidiFile.KIND_LYRIC ->
-                                texts.add(MidiText(tick, type, TextDecoder.decode(payload), trackIndex))
+                                texts.add(MidiText(tick, type, TextDecoder.decode(payload, textCharset), trackIndex))
                         }
                     } else if (status == 0xF0 || status == 0xF7) {
                         reader.skip(reader.vlq())

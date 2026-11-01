@@ -108,7 +108,7 @@ fun SettingsScreen(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
             style = MaterialTheme.typography.bodySmall
         )
         Spacer(Modifier.height(8.dp))
-        KaraokePreview(vm.karaokeLayout, vm.lyricsPosition, vm.lyricsAlignment)
+        KaraokePreview(vm.karaokeLayout, vm.lyricsPosition, vm.lyricsAlignment, vm.karaokeStyle)
         Spacer(Modifier.height(12.dp))
         ChoiceRow(
             title = "Layout ng lyrics",
@@ -171,6 +171,8 @@ fun SettingsScreen(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
             Switch(checked = vm.autoKaraoke, onCheckedChange = { vm.toggleAutoKaraoke() })
         }
         Spacer(Modifier.height(20.dp))
+
+        ExtraSettings(vm)
 
         MicPanel(vm)
         Spacer(Modifier.height(16.dp))
@@ -247,7 +249,7 @@ private fun FolderCard(
 }
 
 @Composable
-private fun SoundFontRow(name: String, selected: Boolean, onClick: () -> Unit) {
+internal fun SoundFontRow(name: String, selected: Boolean, onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -261,7 +263,7 @@ private fun SoundFontRow(name: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun <T> ChoiceRow(title: String, options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
+internal fun <T> ChoiceRow(title: String, options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
     Text(title, color = KColors.Cream, fontWeight = FontWeight.Bold)
     Spacer(Modifier.height(4.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -289,7 +291,12 @@ private fun <T> ChoiceRow(title: String, options: List<Pair<T, String>>, selecte
 
 /** Maliit na preview ng napiling ayos, gamit ang sample na lyrics. */
 @Composable
-private fun KaraokePreview(layout: KaraokeLayout, position: LyricsPosition, alignment: LyricsAlignment) {
+private fun KaraokePreview(
+    layout: KaraokeLayout,
+    position: LyricsPosition,
+    alignment: LyricsAlignment,
+    style: KaraokeStyle
+) {
     val sample = remember {
         Lyrics(
             lines = listOf(
@@ -311,6 +318,6 @@ private fun KaraokePreview(layout: KaraokeLayout, position: LyricsPosition, alig
             .padding(12.dp),
         contentAlignment = if (position == LyricsPosition.BOTTOM) Alignment.BottomCenter else Alignment.Center
     ) {
-        KaraokeLyrics(sample, 700L, layout, alignment, fontScale = 0.45f)
+        KaraokeLyrics(sample, 700L, layout, alignment, fontScale = 0.45f, style = style)
     }
 }

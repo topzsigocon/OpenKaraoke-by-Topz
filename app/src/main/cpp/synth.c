@@ -102,3 +102,9 @@ Java_com_topz_karaoke_audio_NativeSynth_nativeReset(JNIEnv* env, jobject thiz) {
     (void)env; (void)thiz;
     if (g_tsf) { tsf_reset(g_tsf); init_channels(); }
 }
+
+JNIEXPORT void JNICALL
+Java_com_topz_karaoke_audio_NativeSynth_nativeSetMaxVoices(JNIEnv* env, jobject thiz, jint count) {
+    (void)env; (void)thiz;
+    if (g_tsf && count >= 8 && count <= 256) tsf_set_max_voices(g_tsf, count);
+}

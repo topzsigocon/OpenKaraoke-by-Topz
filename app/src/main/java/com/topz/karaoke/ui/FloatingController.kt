@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
@@ -60,7 +61,8 @@ fun FloatingController(vm: KaraokeViewModel, modifier: Modifier = Modifier) {
         if (!expanded) {
             Box(
                 Modifier
-                    .size(60.dp)
+                    .size(vm.bubbleSize.dpSize())
+                    .alpha(vm.bubbleOpacityPercent / 100f)
                     .clip(CircleShape)
                     .background(KColors.Gold)
                     .pointerInput(Unit) {

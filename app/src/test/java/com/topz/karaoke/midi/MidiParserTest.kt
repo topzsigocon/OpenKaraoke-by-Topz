@@ -55,6 +55,14 @@ class MidiParserTest {
     }
 
     @Test
+    fun forcedCharsetOverridesAutoDetection() {
+        val utf8Enye = byteArrayOf(0xC3.toByte(), 0xB1.toByte()) // "ñ" sa UTF-8
+        val data = smf(track(MidiTestBuilder.textBytes(0, utf8Enye, 0x05), end()))
+        assertEquals("ñ", MidiParser.parse(data).texts[0].text)
+        assertEquals("Ã±", MidiParser.parse(data, Charsets.ISO_8859_1).texts[0].text)
+    }
+
+    @Test
     fun garbageThrows() {
         assertThrows(MidiParseException::class.java) {
             MidiParser.parse("hindi ito midi".toByteArray())

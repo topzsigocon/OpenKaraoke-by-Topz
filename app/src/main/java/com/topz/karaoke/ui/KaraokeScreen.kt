@@ -65,7 +65,7 @@ fun KaraokeScreen(vm: KaraokeViewModel) {
     val position = (player.positionMs - vm.lyricsOffsetMs).coerceAtLeast(0L)
     var showQueue by remember { mutableStateOf(false) }
 
-    val showVideo = vm.videoEnabled && vm.videoFiles.isNotEmpty() && song != null &&
+    val showVideo = vm.videoActive && vm.videoFiles.isNotEmpty() && song != null &&
         player.status != PlayerStatus.ERROR
 
     Box(
@@ -75,7 +75,7 @@ fun KaraokeScreen(vm: KaraokeViewModel) {
     ) {
         if (showVideo) {
             VideoBackground(vm.videoFiles, Modifier.fillMaxSize())
-            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)))
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = vm.videoDimPercent / 100f)))
         }
 
         Box(
@@ -99,7 +99,7 @@ fun KaraokeScreen(vm: KaraokeViewModel) {
                     Modifier.fillMaxSize().padding(bottom = if (atBottom) 64.dp else 0.dp),
                     contentAlignment = if (atBottom) Alignment.BottomCenter else Alignment.Center
                 ) {
-                    KaraokeLyrics(lyrics, position, vm.karaokeLayout, vm.lyricsAlignment)
+                    KaraokeLyrics(lyrics, position, vm.karaokeLayout, vm.lyricsAlignment, style = vm.karaokeStyle)
                 }
             }
         }
@@ -139,7 +139,8 @@ internal fun KaraokeLyrics(
     position: Long,
     layout: KaraokeLayout,
     alignment: LyricsAlignment,
-    fontScale: Float = 1f
+    fontScale: Float = 1f,
+    style: KaraokeStyle = KaraokeStyle()
 ) {
     val current = lyrics.lineIndexAt(position)
     val opposing = alignment == LyricsAlignment.OPPOSING
@@ -151,20 +152,20 @@ internal fun KaraokeLyrics(
             // Dalawang linya ang nakikita; nagpapalitan ang itaas at ibaba habang tumutugtog.
             val plan = KaraokeLines.twoLine(current, lyrics.lines.size)
             plan.topIndex?.let { i ->
-                KaraokeLine(lyrics.lines[i], position, 1f, highlight = i == current, align = firstAlign, fontScale = fontScale)
+                KaraokeLine(lyrics.lines[i], position, 1f, highlight = i == current, align = firstAlign, fontScale = fontScale, style = style)
             }
             Spacer(Modifier.height((20 * fontScale).dp))
             plan.bottomIndex?.let { i ->
-                KaraokeLine(lyrics.lines[i], position, 1f, highlight = i == current, align = secondAlign, fontScale = fontScale)
+                KaraokeLine(lyrics.lines[i], position, 1f, highlight = i == current, align = secondAlign, fontScale = fontScale, style = style)
             }
         } else {
             // Default: kasalukuyang linya, at ang susunod na mas maliit sa ibaba.
             // Bago magsimula, ipinapakita na ang unang linya para makapaghanda ang kumakanta.
             val index = maxOf(current, 0)
-            KaraokeLine(lyrics.lines[index], position, 1f, highlight = current >= 0, align = firstAlign, fontScale = fontScale)
+            KaraokeLine(lyrics.lines[index], position, 1f, highlight = current >= 0, align = firstAlign, fontScale = fontScale, style = style)
             Spacer(Modifier.height((28 * fontScale).dp))
             lyrics.lines.getOrNull(index + 1)?.let {
-                KaraokeLine(it, position, 0.6f, highlight = false, align = secondAlign, fontScale = fontScale)
+                KaraokeLine(it, position, 0.6f, highlight = false, align = secondAlign, fontScale = fontScale, style = style)
             }
         }
     }
@@ -178,7 +179,8 @@ private fun KaraokeLine(
     scale: Float,
     highlight: Boolean,
     align: TextAlign = TextAlign.Center,
-    fontScale: Float = 1f
+    fontScale: Float = 1f,
+    style: KaraokeStyle = KaraokeStyle()
 ) {
     val chars = line.text.length
     val baseSize = when {
@@ -186,20 +188,23 @@ private fun KaraokeLine(
         chars <= 40 -> 32f
         else -> 26f
     }
+    var wordStart = true
     val text = buildAnnotatedString {
         for (w in line.words) {
             val color = when {
                 !highlight -> Color.White.copy(alpha = 0.75f)
-                position >= w.timeMs -> KColors.Gold
+                position >= w.timeMs -> style.highlight
                 else -> Color.White
             }
-            withStyle(SpanStyle(color = color)) { append(w.text) }
+            val shown = LyricText.format(w.text, style.caseMode, wordStart)
+            wordStart = w.text.isEmpty() || w.text.last().isWhitespace()
+            withStyle(SpanStyle(color = color)) { append(shown) }
         }
     }
     Text(
         text = text,
         style = TextStyle(
-            fontSize = (baseSize * scale * fontScale).sp,
+            fontSize = (baseSize * scale * fontScale * style.sizeScale).sp,
             fontWeight = FontWeight.Bold,
             textAlign = align,
             shadow = Shadow(Color.Black, Offset(2f, 2f), 6f)

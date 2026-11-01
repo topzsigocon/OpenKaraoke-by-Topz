@@ -25,6 +25,7 @@ object NativeSynth {
     external fun nativePitchBend(channel: Int, value: Int)
     external fun nativeChannelNotesOff(channel: Int)
     external fun nativeReset()
+    external fun nativeSetMaxVoices(count: Int)
 }
 
 /** Ang ipinapadala ng sequencer. May hiwalay na implementasyon para sa native at para sa mga test. */

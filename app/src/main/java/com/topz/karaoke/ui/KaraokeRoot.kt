@@ -81,10 +81,10 @@ fun KaraokeRoot(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
             FloatingController(
                 vm = vm,
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
+                    .align(vm.bubbleSide.alignment())
                     .navigationBarsPadding()
                     .imePadding()
-                    .padding(end = 16.dp, bottom = 24.dp)
+                    .padding(start = 16.dp, end = 16.dp, bottom = 24.dp)
             )
         }
         return
@@ -141,10 +141,10 @@ fun KaraokeRoot(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
         FloatingController(
             vm = vm,
             modifier = Modifier
-                .align(Alignment.BottomEnd)
+                .align(vm.bubbleSide.alignment())
                 .navigationBarsPadding()
                 .imePadding()
-                .padding(end = 16.dp, bottom = if (barVisible) 156.dp else 96.dp)
+                .padding(start = 16.dp, end = 16.dp, bottom = if (barVisible) 156.dp else 96.dp)
         )
     }
 }

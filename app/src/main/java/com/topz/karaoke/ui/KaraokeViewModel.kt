@@ -11,9 +11,15 @@ import androidx.lifecycle.viewModelScope
 import com.topz.karaoke.audio.DefaultSoundFont
 import com.topz.karaoke.audio.MicEngine
 import com.topz.karaoke.audio.Player
+import com.topz.karaoke.data.BubbleSide
+import com.topz.karaoke.data.BubbleSize
+import com.topz.karaoke.data.HighlightColor
 import com.topz.karaoke.data.IndexCache
 import com.topz.karaoke.data.KaraokeLayout
 import com.topz.karaoke.data.LyricsAlignment
+import com.topz.karaoke.data.LyricsCase
+import com.topz.karaoke.data.LyricsSize
+import com.topz.karaoke.data.PerformanceMode
 import com.topz.karaoke.data.LyricsPosition
 import com.topz.karaoke.data.SettingsStore
 import com.topz.karaoke.data.Song
@@ -30,6 +36,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.nio.charset.Charset
 
 class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -42,7 +49,8 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     private val favoritesFile = File(app.filesDir, "favorites.tsv")
 
     /** Ang audio player (SoundFont synth). */
-    val player = Player(viewModelScope, app.getSystemService(AudioManager::class.java), settings) { resolveSoundFont() }
+    val player = Player(viewModelScope, app.getSystemService(AudioManager::class.java), settings,
+        { muteMelodyDefault }, { lyricsCharset() }) { resolveSoundFont() }
 
     var hasAccess by mutableStateOf(storage.hasAccess())
         private set
@@ -72,6 +80,39 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var autoKaraoke by mutableStateOf(settings.getAutoKaraoke())
         private set
+
+    // ----- Pag-customize -----
+    var lyricsSize by mutableStateOf(settings.getLyricsSize())
+        private set
+    var highlightColor by mutableStateOf(settings.getHighlightColor())
+        private set
+    var lyricsCase by mutableStateOf(settings.getLyricsCase())
+        private set
+    var videoDimPercent by mutableStateOf(settings.getVideoDimPercent())
+        private set
+    var performanceMode by mutableStateOf(settings.getPerformanceMode())
+        private set
+    var muteMelodyDefault by mutableStateOf(settings.getMuteMelodyByDefault())
+        private set
+    var bubbleSize by mutableStateOf(settings.getBubbleSize())
+        private set
+    var bubbleOpacityPercent by mutableStateOf(settings.getBubbleOpacityPercent())
+        private set
+    var bubbleSide by mutableStateOf(settings.getBubbleSide())
+        private set
+    var lyricsEncoding by mutableStateOf(settings.getLyricsEncoding())
+        private set
+
+    /** Sa Economy mode, hindi ginagamit ang background video. */
+    val videoActive: Boolean
+        get() = videoEnabled && performanceMode != PerformanceMode.ECONOMY
+
+    val karaokeStyle: KaraokeStyle
+        get() = KaraokeStyle(lyricsSize.scale(), highlightColor.toColor(), lyricsCase)
+
+    /** Piniling charset ng lyrics; null = awtomatiko. */
+    fun lyricsCharset(): Charset? =
+        if (lyricsEncoding == "AUTO") null else try { Charset.forName(lyricsEncoding) } catch (_: Exception) { null }
 
     /** Karaoke Mode: nakatago ang normal na UI. Hindi apektado ang pagtugtog. */
     var karaokeMode by mutableStateOf(false)
@@ -115,6 +156,7 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         player.onSongFinished = { playNextFromQueue() }
+        player.applyVoiceLimit(performanceMode.voices)
         // Ibalik ang queue na na-save noong nakaraang gamit
         IndexCache.load(queueFile, "queue")?.let { queue.addAll(it) }
         IndexCache.load(historyFile, "history")?.let { history = it }
@@ -199,6 +241,57 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     fun chooseLyricsAlignment(value: LyricsAlignment) {
         lyricsAlignment = value
         settings.setLyricsAlignment(value)
+    }
+
+    fun chooseLyricsSize(value: LyricsSize) {
+        lyricsSize = value
+        settings.setLyricsSize(value)
+    }
+
+    fun chooseHighlightColor(value: HighlightColor) {
+        highlightColor = value
+        settings.setHighlightColor(value)
+    }
+
+    fun chooseLyricsCase(value: LyricsCase) {
+        lyricsCase = value
+        settings.setLyricsCase(value)
+    }
+
+    fun changeVideoDim(percent: Int) {
+        videoDimPercent = percent.coerceIn(0, 80)
+        settings.setVideoDimPercent(videoDimPercent)
+    }
+
+    fun choosePerformanceMode(value: PerformanceMode) {
+        performanceMode = value
+        settings.setPerformanceMode(value)
+        player.applyVoiceLimit(value.voices)
+    }
+
+    fun toggleMuteMelodyDefault() {
+        muteMelodyDefault = !muteMelodyDefault
+        settings.setMuteMelodyByDefault(muteMelodyDefault)
+    }
+
+    fun chooseBubbleSize(value: BubbleSize) {
+        bubbleSize = value
+        settings.setBubbleSize(value)
+    }
+
+    fun changeBubbleOpacity(percent: Int) {
+        bubbleOpacityPercent = percent.coerceIn(30, 100)
+        settings.setBubbleOpacityPercent(bubbleOpacityPercent)
+    }
+
+    fun chooseBubbleSide(value: BubbleSide) {
+        bubbleSide = value
+        settings.setBubbleSide(value)
+    }
+
+    fun chooseLyricsEncoding(name: String) {
+        lyricsEncoding = name
+        settings.setLyricsEncoding(name)
     }
 
     fun toggleAutoKaraoke() {

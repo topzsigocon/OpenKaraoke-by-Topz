@@ -93,4 +93,52 @@ class SettingsStore(context: Context) : SongPrefsStore {
     fun setAutoKaraoke(value: Boolean) {
         prefs.edit().putBoolean("auto_karaoke", value).apply()
     }
+
+    // ---- Pag-customize (default = kasalukuyang ayos) ----
+    private inline fun <reified T : Enum<T>> enumPref(key: String, default: T): T =
+        enumValues<T>().firstOrNull { it.name == prefs.getString(key, null) } ?: default
+
+    private fun putEnum(key: String, value: Enum<*>) {
+        prefs.edit().putString(key, value.name).apply()
+    }
+
+    fun getLyricsSize(): LyricsSize = enumPref("lyrics_size", LyricsSize.MEDIUM)
+    fun setLyricsSize(v: LyricsSize) = putEnum("lyrics_size", v)
+
+    fun getHighlightColor(): HighlightColor = enumPref("highlight_color", HighlightColor.GOLD)
+    fun setHighlightColor(v: HighlightColor) = putEnum("highlight_color", v)
+
+    fun getLyricsCase(): LyricsCase = enumPref("lyrics_case", LyricsCase.ORIGINAL)
+    fun setLyricsCase(v: LyricsCase) = putEnum("lyrics_case", v)
+
+    /** Dilim ng takip sa video sa Karaoke Mode (0 hanggang 80). */
+    fun getVideoDimPercent(): Int = prefs.getInt("video_dim_percent", 45)
+    fun setVideoDimPercent(v: Int) {
+        prefs.edit().putInt("video_dim_percent", v).apply()
+    }
+
+    fun getPerformanceMode(): PerformanceMode = enumPref("performance_mode", PerformanceMode.HIGH)
+    fun setPerformanceMode(v: PerformanceMode) = putEnum("performance_mode", v)
+
+    fun getMuteMelodyByDefault(): Boolean = prefs.getBoolean("mute_melody_default", false)
+    fun setMuteMelodyByDefault(v: Boolean) {
+        prefs.edit().putBoolean("mute_melody_default", v).apply()
+    }
+
+    fun getBubbleSize(): BubbleSize = enumPref("bubble_size", BubbleSize.MEDIUM)
+    fun setBubbleSize(v: BubbleSize) = putEnum("bubble_size", v)
+
+    fun getBubbleOpacityPercent(): Int = prefs.getInt("bubble_opacity", 100)
+    fun setBubbleOpacityPercent(v: Int) {
+        prefs.edit().putInt("bubble_opacity", v).apply()
+    }
+
+    fun getBubbleSide(): BubbleSide = enumPref("bubble_side", BubbleSide.RIGHT)
+    fun setBubbleSide(v: BubbleSide) = putEnum("bubble_side", v)
+
+    /** "AUTO" o pangalan ng charset (hal. "windows-874"). */
+    fun getLyricsEncoding(): String = prefs.getString("lyrics_encoding", "AUTO") ?: "AUTO"
+    fun setLyricsEncoding(v: String) {
+        prefs.edit().putString("lyrics_encoding", v).apply()
+    }
 }

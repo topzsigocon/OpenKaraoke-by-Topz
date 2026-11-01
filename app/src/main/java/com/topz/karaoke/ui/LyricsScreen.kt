@@ -71,7 +71,7 @@ fun LyricsScreen(song: Song, vm: KaraokeViewModel, onBack: () -> Unit) {
     LaunchedEffect(song.key) {
         state = withContext<LoadState>(Dispatchers.IO) {
             try {
-                val midi = MidiParser.parse(SongReader.read(song))
+                val midi = MidiParser.parse(SongReader.read(song), vm.lyricsCharset())
                 LoadState.Ready(LyricsExtractor.extract(midi), midi.tracks.size, midi.format)
             } catch (e: Exception) {
                 LoadState.Failed(e.message ?: e.javaClass.simpleName)
@@ -79,7 +79,7 @@ fun LyricsScreen(song: Song, vm: KaraokeViewModel, onBack: () -> Unit) {
         }
     }
 
-    val showVideo = vm.videoEnabled && vm.videoFiles.isNotEmpty() && isCurrent &&
+    val showVideo = vm.videoActive && vm.videoFiles.isNotEmpty() && isCurrent &&
         (player.status == PlayerStatus.PLAYING || player.status == PlayerStatus.PAUSED)
 
     Box(Modifier.fillMaxSize()) {

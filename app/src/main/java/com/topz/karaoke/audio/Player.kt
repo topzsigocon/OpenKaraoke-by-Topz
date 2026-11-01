@@ -32,6 +32,10 @@ class Player(
     private val scope: CoroutineScope,
     private val audioManager: AudioManager,
     private val songPrefs: SongPrefsStore,
+    /** Kung true, i-mute ang melody sa mga kantang wala pang naka-save na setting. */
+    private val muteMelodyDefault: () -> Boolean,
+    /** Piniling encoding ng lyrics; null = awtomatiko. */
+    private val lyricsCharset: () -> java.nio.charset.Charset?,
     /** Tinatawag sa background thread; ibinabalik ang path ng SoundFont na gagamitin. */
     private val soundFontProvider: () -> String?
 ) {
@@ -132,7 +136,9 @@ class Player(
 
         this.song = song
         // Ibalik ang key/tempo/mute na ginamit mo sa kantang ito dati
-        val saved = songPrefs.load(song.key) ?: SongPrefs()
+        val savedOrNull = songPrefs.load(song.key)
+        val firstTime = savedOrNull == null
+        val saved = savedOrNull ?: SongPrefs()
         transpose = saved.transpose
         tempoPercent = saved.tempoPercent
         mutedChannels = saved.muted
@@ -152,6 +158,9 @@ class Player(
                 durationMs = prepared.sequencer.durationMs
                 channels = prepared.sequencer.channelInfos
                 melodyChannel = prepared.sequencer.melodyChannel
+                if (firstTime && muteMelodyDefault()) {
+                    prepared.sequencer.melodyChannel?.let { mutedChannels = mutedChannels + it }
+                }
                 // Ilapat ang mga setting (key, tempo, mute) na pinili na ng user
                 engine.setTranspose(transpose)
                 engine.setTempoFactor(tempoPercent / 100.0)
@@ -175,7 +184,7 @@ class Player(
     }
 
     private fun prepare(song: Song): Prepared {
-        val midi = MidiParser.parse(SongReader.read(song))
+        val midi = MidiParser.parse(SongReader.read(song), lyricsCharset())
         val lyrics = LyricsExtractor.extract(midi)
         if (!NativeSynth.available) {
             throw IllegalStateException("Hindi ma-load ang audio engine (native library).")
@@ -257,6 +266,10 @@ class Player(
     private fun saveSettings() {
         val current = song ?: return
         songPrefs.save(current.key, SongPrefs(transpose, tempoPercent, mutedChannels))
+    }
+
+    fun applyVoiceLimit(count: Int) {
+        engine.applyVoiceLimit(count)
     }
 
     fun release() {
