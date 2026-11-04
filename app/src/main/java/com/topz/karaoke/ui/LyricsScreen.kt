@@ -107,7 +107,7 @@ fun LyricsScreen(song: Song, vm: KaraokeViewModel, onBack: () -> Unit) {
             style = MaterialTheme.typography.titleLarge
         )
         val sub = listOfNotNull(
-            song.number?.toString()?.padStart(5, '0'),
+            song.number?.let { SongNumberFormat.format(it) },
             song.artist,
             if (song.entry != null) "mula sa zip" else null
         ).joinToString(" • ")

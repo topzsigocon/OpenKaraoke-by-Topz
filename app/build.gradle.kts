@@ -31,7 +31,24 @@ android {
         }
     }
 
+    // Nakatakdang signing key (para ang bawat bagong build ay mai-install bilang update, hindi kailangang mag-uninstall).
+    val keystoreFile = file("openkaraoke-signing.p12")
+    signingConfigs {
+        if (keystoreFile.exists()) {
+            create("openkaraoke") {
+                storeFile = keystoreFile
+                storePassword = "openkaraoke"
+                keyAlias = "openkaraoke"
+                keyPassword = "openkaraoke"
+                storeType = "pkcs12"
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            if (keystoreFile.exists()) signingConfig = signingConfigs.getByName("openkaraoke")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(

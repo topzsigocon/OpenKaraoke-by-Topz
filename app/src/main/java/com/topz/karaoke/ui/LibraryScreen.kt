@@ -166,7 +166,7 @@ private fun SongRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = song.number?.toString()?.padStart(5, '0') ?: "-----",
+            text = song.number?.let { SongNumberFormat.format(it) } ?: "-----",
             color = KColors.Gold,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace

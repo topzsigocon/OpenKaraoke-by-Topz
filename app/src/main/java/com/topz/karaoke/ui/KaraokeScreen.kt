@@ -99,7 +99,7 @@ fun KaraokeScreen(vm: KaraokeViewModel) {
                     Modifier.fillMaxSize().padding(bottom = if (atBottom) 64.dp else 0.dp),
                     contentAlignment = if (atBottom) Alignment.BottomCenter else Alignment.Center
                 ) {
-                    KaraokeLyrics(lyrics, position, vm.karaokeLayout, vm.lyricsAlignment, style = vm.karaokeStyle)
+                    KaraokeLyrics(lyrics, position, vm.karaokeLayout, vm.lyricsAlignment, style = vm.karaokeStyle, showCountdown = vm.countdownDots)
                 }
             }
         }
@@ -111,9 +111,9 @@ fun KaraokeScreen(vm: KaraokeViewModel) {
             OverlayChip("☰ UI", gold = false) { vm.exitKaraokeMode() }
             // Maliit na pamagat ng kasalukuyang kanta (nakatago habang ipinapakita ang malaking pamagat sa intro)
             Box(Modifier.weight(1f).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
-                if (song != null && !player.introActive) {
+                if (song != null && !player.introActive && vm.showTopTitle) {
                     Text(
-                        song.title,
+                        topTitleText(song, vm.topTitleNumber),
                         color = Color.White.copy(alpha = 0.85f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -126,7 +126,9 @@ fun KaraokeScreen(vm: KaraokeViewModel) {
                     )
                 }
             }
-            OverlayChip("QUEUE: %02d".format(vm.queue.size), gold = true) { showQueue = true }
+            if (vm.showQueueIndicator) {
+                OverlayChip("QUEUE: %02d".format(vm.queue.size), gold = true) { showQueue = true }
+            }
         }
     }
 
@@ -140,7 +142,8 @@ internal fun KaraokeLyrics(
     layout: KaraokeLayout,
     alignment: LyricsAlignment,
     fontScale: Float = 1f,
-    style: KaraokeStyle = KaraokeStyle()
+    style: KaraokeStyle = KaraokeStyle(),
+    showCountdown: Boolean = false
 ) {
     val current = lyrics.lineIndexAt(position)
     val opposing = alignment == LyricsAlignment.OPPOSING
@@ -148,6 +151,19 @@ internal fun KaraokeLyrics(
     val secondAlign = if (opposing) TextAlign.End else TextAlign.Center
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        if (showCountdown) {
+            // Countdown na tuldok: sa huling 4 na segundo bago ang susunod na linya, kung mahaba ang pahinga bago ito.
+            val upcoming = lyrics.lines.getOrNull(current + 1)
+            val remaining = if (upcoming == null) 0L else upcoming.startMs - position
+            val previousStart = lyrics.lines.getOrNull(current)?.words?.last()?.timeMs ?: 0L
+            val gap = if (upcoming == null) 0L else upcoming.startMs - previousStart
+            val dots = if (upcoming != null && gap >= 8000L && remaining in 1L..4000L) ((remaining + 999L) / 1000L).toInt() else 0
+            Box(Modifier.height(36.dp), contentAlignment = Alignment.Center) {
+                if (dots > 0) {
+                    Text("● ".repeat(dots).trim(), color = style.highlight, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
         if (layout == KaraokeLayout.TWO_LINE) {
             // Dalawang linya ang nakikita; nagpapalitan ang itaas at ibaba habang tumutugtog.
             val plan = KaraokeLines.twoLine(current, lyrics.lines.size)
@@ -207,7 +223,7 @@ private fun KaraokeLine(
             fontSize = (baseSize * scale * fontScale * style.sizeScale).sp,
             fontWeight = FontWeight.Bold,
             textAlign = align,
-            shadow = Shadow(Color.Black, Offset(2f, 2f), 6f)
+            shadow = style.outline.shadow()
         ),
         modifier = Modifier.fillMaxWidth()
     )
@@ -277,7 +293,7 @@ private fun QueuePeekDialog(vm: KaraokeViewModel, onDismiss: () -> Unit) {
                             Spacer(Modifier.width(8.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(song.title, color = KColors.Cream, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                val sub = listOfNotNull(song.number?.toString()?.padStart(5, '0'), song.artist)
+                                val sub = listOfNotNull(song.number?.let { SongNumberFormat.format(it) }, song.artist)
                                     .joinToString(" • ")
                                 if (sub.isNotEmpty()) {
                                     Text(sub, color = KColors.CreamDim, style = MaterialTheme.typography.bodySmall, maxLines = 1)
@@ -317,10 +333,13 @@ private fun IntroCard(song: Song) {
         if (song.number != null) {
             Spacer(Modifier.height(8.dp))
             Text(
-                "No. " + song.number.toString().padStart(5, '0'),
+                "No. " + SongNumberFormat.formatOrEmpty(song.number),
                 color = KColors.CreamDim,
                 style = TextStyle(fontSize = 20.sp, textAlign = TextAlign.Center, shadow = shadow)
             )
         }
     }
 }
+
+private fun topTitleText(song: Song, withNumber: Boolean): String =
+    if (withNumber && song.number != null) SongNumberFormat.format(song.number) + " · " + song.title else song.title

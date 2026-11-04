@@ -173,6 +173,7 @@ fun SettingsScreen(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
         Spacer(Modifier.height(20.dp))
 
         ExtraSettings(vm)
+        MoreSettings(vm)
 
         MicPanel(vm)
         Spacer(Modifier.height(16.dp))

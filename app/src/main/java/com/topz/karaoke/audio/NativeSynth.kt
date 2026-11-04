@@ -26,6 +26,7 @@ object NativeSynth {
     external fun nativeChannelNotesOff(channel: Int)
     external fun nativeReset()
     external fun nativeSetMaxVoices(count: Int)
+    external fun nativeSetGain(gainDb: Float)
 }
 
 /** Ang ipinapadala ng sequencer. May hiwalay na implementasyon para sa native at para sa mga test. */

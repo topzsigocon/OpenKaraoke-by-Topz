@@ -1,5 +1,8 @@
 package com.topz.karaoke.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -69,6 +72,22 @@ fun MicPanel(vm: KaraokeViewModel) {
             Text(error, color = KColors.Cream, style = MaterialTheme.typography.bodySmall)
         }
 
+        // Mga preset: itinatakda ang reverb at echo (hindi ginagalaw ang volume)
+        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            for ((name, reverb, echo) in MIC_PRESETS) {
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(KColors.NavyLight)
+                        .clickable { vm.applyMicPreset(reverb, echo) }
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(name, color = KColors.Cream, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
         MicSlider("Volume", vm.micVolume) { vm.changeMicVolume(it) }
         MicSlider("Reverb", vm.micReverb) { vm.changeMicReverb(it) }
         MicSlider("Echo", vm.micEcho) { vm.changeMicEcho(it) }
@@ -91,3 +110,11 @@ private fun MicSlider(label: String, value: Float, onChange: (Float) -> Unit) {
         )
     }
 }
+
+/** (pangalan, reverb, echo) */
+private val MIC_PRESETS = listOf(
+    Triple("Kuwarto", 0.25f, 0.10f),
+    Triple("Bulwagan", 0.65f, 0.25f),
+    Triple("Studio", 0.15f, 0.05f),
+    Triple("Echo", 0.30f, 0.60f)
+)

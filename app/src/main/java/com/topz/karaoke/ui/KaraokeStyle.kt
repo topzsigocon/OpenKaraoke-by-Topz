@@ -1,5 +1,8 @@
 package com.topz.karaoke.ui
 
+import com.topz.karaoke.data.LyricsOutline
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
@@ -14,7 +17,8 @@ import com.topz.karaoke.data.LyricsSize
 data class KaraokeStyle(
     val sizeScale: Float = 1f,
     val highlight: Color = KColors.Gold,
-    val caseMode: LyricsCase = LyricsCase.ORIGINAL
+    val caseMode: LyricsCase = LyricsCase.ORIGINAL,
+    val outline: LyricsOutline = LyricsOutline.MEDIUM
 )
 
 fun LyricsSize.scale(): Float = when (this) {
@@ -47,4 +51,12 @@ fun BubbleSize.dpSize(): Dp = when (this) {
 fun BubbleSide.alignment(): Alignment = when (this) {
     BubbleSide.RIGHT -> Alignment.BottomEnd
     BubbleSide.LEFT -> Alignment.BottomStart
+}
+
+/** Anino/outline ng lyrics. MEDIUM = kasalukuyang itsura. */
+fun LyricsOutline.shadow(): Shadow? = when (this) {
+    LyricsOutline.NONE -> null
+    LyricsOutline.THIN -> Shadow(Color.Black, Offset(1f, 1f), 3f)
+    LyricsOutline.MEDIUM -> Shadow(Color.Black, Offset(2f, 2f), 6f)
+    LyricsOutline.THICK -> Shadow(Color.Black, Offset(3f, 3f), 10f)
 }

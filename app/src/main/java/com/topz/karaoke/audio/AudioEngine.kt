@@ -25,6 +25,7 @@ class AudioEngine {
     private var released = false
     private var loadedSoundFont: String? = null
     private var voiceLimit = 64
+    private var gainDb = GAIN_DB
     private var thread: Thread? = null
 
     @Volatile
@@ -41,10 +42,18 @@ class AudioEngine {
         if (loadedSoundFont == path) {
             true
         } else {
-            val ok = NativeSynth.available && NativeSynth.nativeLoad(path, sampleRate, GAIN_DB)
+            val ok = NativeSynth.available && NativeSynth.nativeLoad(path, sampleRate, gainDb)
             loadedSoundFont = if (ok) path else null
             if (ok) NativeSynth.nativeSetMaxVoices(voiceLimit)
             ok
+        }
+    }
+
+    /** Lakas ng synth (dB). Ilalapat din pagkatapos mag-load ng SoundFont. */
+    fun applyGain(db: Float) {
+        lock.withLock {
+            gainDb = db
+            if (NativeSynth.available && loadedSoundFont != null) NativeSynth.nativeSetGain(db)
         }
     }
 

@@ -10,6 +10,7 @@
 #define MAX_VOICES 64
 
 static tsf* g_tsf = NULL;
+static int g_sample_rate = 48000;
 
 static void init_channels(void) {
     int ch;
@@ -34,6 +35,7 @@ Java_com_topz_karaoke_audio_NativeSynth_nativeLoad(JNIEnv* env, jobject thiz, js
     f = tsf_load_filename(cpath);
     (*env)->ReleaseStringUTFChars(env, path, cpath);
     if (!f) return JNI_FALSE;
+    g_sample_rate = sampleRate;
     tsf_set_output(f, TSF_STEREO_INTERLEAVED, sampleRate, gainDb);
     tsf_set_max_voices(f, MAX_VOICES);
     g_tsf = f;
@@ -107,4 +109,10 @@ JNIEXPORT void JNICALL
 Java_com_topz_karaoke_audio_NativeSynth_nativeSetMaxVoices(JNIEnv* env, jobject thiz, jint count) {
     (void)env; (void)thiz;
     if (g_tsf && count >= 8 && count <= 256) tsf_set_max_voices(g_tsf, count);
+}
+
+JNIEXPORT void JNICALL
+Java_com_topz_karaoke_audio_NativeSynth_nativeSetGain(JNIEnv* env, jobject thiz, jfloat gainDb) {
+    (void)env; (void)thiz;
+    if (g_tsf) tsf_set_output(g_tsf, TSF_STEREO_INTERLEAVED, g_sample_rate, gainDb);
 }

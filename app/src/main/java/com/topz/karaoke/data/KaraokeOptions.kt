@@ -28,3 +28,15 @@ enum class PerformanceMode(val voices: Int) {
 enum class BubbleSize { SMALL, MEDIUM, LARGE }
 
 enum class BubbleSide { RIGHT, LEFT }
+
+/** Kapal ng anino/outline ng lyrics. MEDIUM = kasalukuyang itsura. */
+enum class LyricsOutline { NONE, THIN, MEDIUM, THICK }
+
+/** Pag-uulit pagkatapos ng kanta. */
+enum class RepeatMode { OFF, ONE, QUEUE }
+
+/** Orientation ng screen sa Karaoke Mode. */
+enum class OrientationLock { AUTO, LANDSCAPE, PORTRAIT }
+
+/** Pag-uuri ng Library. */
+enum class SongSort { NUMBER, TITLE, ARTIST }

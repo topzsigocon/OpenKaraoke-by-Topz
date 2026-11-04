@@ -70,7 +70,7 @@ class Player(
         private set
 
     /** Tinatawag kapag natapos ang kanta (para sa susunod sa queue). */
-    var onSongFinished: (() -> Unit)? = null
+    var onSongFinished: ((Song) -> Unit)? = null
 
     private var loadJob: Job? = null
     private var focusRequest: AudioFocusRequest? = null
@@ -268,6 +268,10 @@ class Player(
         songPrefs.save(current.key, SongPrefs(transpose, tempoPercent, mutedChannels))
     }
 
+    fun applyGain(db: Float) {
+        engine.applyGain(db)
+    }
+
     fun applyVoiceLimit(count: Int) {
         engine.applyVoiceLimit(count)
     }
@@ -292,6 +296,7 @@ class Player(
 
     private fun handleFinished() {
         if (status != PlayerStatus.PLAYING) return
+        val finished = song
         abandonFocus()
         ticker?.cancel()
         positionMs = 0L
@@ -299,6 +304,6 @@ class Player(
         song = null
         lyrics = null
         channels = emptyList()
-        onSongFinished?.invoke()
+        if (finished != null) onSongFinished?.invoke(finished)
     }
 }

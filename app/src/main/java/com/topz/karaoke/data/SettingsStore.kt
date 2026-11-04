@@ -141,4 +141,67 @@ class SettingsStore(context: Context) : SongPrefsStore {
     fun setLyricsEncoding(v: String) {
         prefs.edit().putString("lyrics_encoding", v).apply()
     }
+
+    // ---- Mga dagdag na setting ----
+    fun getLyricsOutline(): LyricsOutline = enumPref("lyrics_outline", LyricsOutline.MEDIUM)
+    fun setLyricsOutline(v: LyricsOutline) = putEnum("lyrics_outline", v)
+
+    fun getRepeatMode(): RepeatMode = enumPref("repeat_mode", RepeatMode.OFF)
+    fun setRepeatMode(v: RepeatMode) = putEnum("repeat_mode", v)
+
+    fun getOrientationLock(): OrientationLock = enumPref("orientation_lock", OrientationLock.AUTO)
+    fun setOrientationLock(v: OrientationLock) = putEnum("orientation_lock", v)
+
+    fun getSongSort(): SongSort = enumPref("song_sort", SongSort.NUMBER)
+    fun setSongSort(v: SongSort) = putEnum("song_sort", v)
+
+    fun getShowQueueIndicator(): Boolean = prefs.getBoolean("show_queue_indicator", true)
+    fun setShowQueueIndicator(v: Boolean) {
+        prefs.edit().putBoolean("show_queue_indicator", v).apply()
+    }
+
+    fun getShowTopTitle(): Boolean = prefs.getBoolean("show_top_title", true)
+    fun setShowTopTitle(v: Boolean) {
+        prefs.edit().putBoolean("show_top_title", v).apply()
+    }
+
+    fun getTopTitleNumber(): Boolean = prefs.getBoolean("top_title_number", false)
+    fun setTopTitleNumber(v: Boolean) {
+        prefs.edit().putBoolean("top_title_number", v).apply()
+    }
+
+    fun getCountdownDots(): Boolean = prefs.getBoolean("countdown_dots", false)
+    fun setCountdownDots(v: Boolean) {
+        prefs.edit().putBoolean("countdown_dots", v).apply()
+    }
+
+    fun getAutoPlayFavorites(): Boolean = prefs.getBoolean("auto_play_favorites", false)
+    fun setAutoPlayFavorites(v: Boolean) {
+        prefs.edit().putBoolean("auto_play_favorites", v).apply()
+    }
+
+    fun getKeypadHaptics(): Boolean = prefs.getBoolean("keypad_haptics", false)
+    fun setKeypadHaptics(v: Boolean) {
+        prefs.edit().putBoolean("keypad_haptics", v).apply()
+    }
+
+    fun getPadNumbers(): Boolean = prefs.getBoolean("pad_numbers", true)
+    fun setPadNumbers(v: Boolean) {
+        prefs.edit().putBoolean("pad_numbers", v).apply()
+    }
+
+    fun getKeypadAutoDigits(): Int = prefs.getInt("keypad_auto_digits", 0)
+    fun setKeypadAutoDigits(v: Int) {
+        prefs.edit().putInt("keypad_auto_digits", v).apply()
+    }
+
+    fun getBubbleFadeSeconds(): Int = prefs.getInt("bubble_fade_seconds", 0)
+    fun setBubbleFadeSeconds(v: Int) {
+        prefs.edit().putInt("bubble_fade_seconds", v).apply()
+    }
+
+    fun getMasterGainDb(): Float = prefs.getFloat("master_gain_db", -4f)
+    fun setMasterGainDb(v: Float) {
+        prefs.edit().putFloat("master_gain_db", v).apply()
+    }
 }

@@ -1,5 +1,10 @@
 package com.topz.karaoke.ui
 
+import kotlinx.coroutines.delay
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -57,12 +62,27 @@ fun FloatingController(vm: KaraokeViewModel, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
     var offset by remember { mutableStateOf(Offset.Zero) }
 
+    // Kusang pagdilim ng saradong bubble kapag walang gumagalaw (tappable pa rin)
+    var idle by remember { mutableStateOf(false) }
+    LaunchedEffect(expanded, offset, vm.bubbleFadeSeconds) {
+        idle = false
+        if (!expanded && vm.bubbleFadeSeconds > 0) {
+            delay(vm.bubbleFadeSeconds * 1000L)
+            idle = true
+        }
+    }
+    val baseAlpha = vm.bubbleOpacityPercent / 100f
+    val bubbleAlpha by animateFloatAsState(
+        targetValue = if (idle) minOf(baseAlpha, 0.15f) else baseAlpha,
+        label = "bubbleAlpha"
+    )
+
     Box(modifier.offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }) {
         if (!expanded) {
             Box(
                 Modifier
                     .size(vm.bubbleSize.dpSize())
-                    .alpha(vm.bubbleOpacityPercent / 100f)
+                    .alpha(bubbleAlpha)
                     .clip(CircleShape)
                     .background(KColors.Gold)
                     .pointerInput(Unit) {
@@ -92,6 +112,7 @@ private fun ControllerPanel(vm: KaraokeViewModel, onDrag: (Offset) -> Unit, onCl
     var digits by remember { mutableStateOf("") }
     var query by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
+    val haptic = LocalHapticFeedback.current
 
     Surface(
         shape = RoundedCornerShape(22.dp),
@@ -165,6 +186,7 @@ private fun ControllerPanel(vm: KaraokeViewModel, onDrag: (Offset) -> Unit, onCl
                     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         for (key in row) {
                             KeyButton(key, accent = key == "OK", modifier = Modifier.weight(1f)) {
+                                if (vm.keypadHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 when (key) {
                                     "⌫" -> {
                                         digits = digits.dropLast(1)
@@ -182,6 +204,15 @@ private fun ControllerPanel(vm: KaraokeViewModel, onDrag: (Offset) -> Unit, onCl
                                     else -> {
                                         if (digits.length < 6) digits += key
                                         message = null
+                                        val autoDigits = vm.keypadAutoDigits
+                                        if (autoDigits > 0 && digits.length == autoDigits) {
+                                            val found = digits.toIntOrNull()?.let { vm.findByNumber(it) }
+                                            if (found != null) {
+                                                vm.enqueue(found)
+                                                message = "Naidagdag: ${found.title}"
+                                                digits = ""
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -207,7 +238,7 @@ private fun ControllerPanel(vm: KaraokeViewModel, onDrag: (Offset) -> Unit, onCl
                             Column(Modifier.weight(1f)) {
                                 Text(song.title, color = KColors.Cream, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(
-                                    listOfNotNull(song.number?.toString()?.padStart(5, '0'), song.artist).joinToString(" • "),
+                                    listOfNotNull(song.number?.let { SongNumberFormat.format(it) }, song.artist).joinToString(" • "),
                                     color = KColors.CreamDim,
                                     style = MaterialTheme.typography.bodySmall,
                                     maxLines = 1,

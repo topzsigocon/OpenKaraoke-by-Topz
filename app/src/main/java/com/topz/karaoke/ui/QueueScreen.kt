@@ -80,6 +80,9 @@ fun QueueScreen(vm: KaraokeViewModel) {
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f)
             )
+            if (vm.queue.size > 1) {
+                TextButton(onClick = { vm.shuffleQueue() }) { Text("🔀 Kalituhin") }
+            }
             if (vm.queue.isNotEmpty()) {
                 TextButton(onClick = { vm.clearQueue() }) { Text("Burahin lahat") }
             }
@@ -111,7 +114,7 @@ fun QueueScreen(vm: KaraokeViewModel) {
                     Column(Modifier.weight(1f)) {
                         Text(song.title, color = KColors.Cream, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         val sub = listOfNotNull(
-                            song.number?.toString()?.padStart(5, '0'),
+                            song.number?.let { SongNumberFormat.format(it) },
                             song.artist
                         ).joinToString(" • ")
                         if (sub.isNotEmpty()) {

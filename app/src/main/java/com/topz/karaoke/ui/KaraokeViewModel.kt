@@ -1,5 +1,11 @@
 package com.topz.karaoke.ui
 
+import com.topz.karaoke.data.SongSorting
+import com.topz.karaoke.data.SongSort
+import com.topz.karaoke.data.RepeatMode
+import com.topz.karaoke.data.OrientationLock
+import com.topz.karaoke.data.LyricsOutline
+import com.topz.karaoke.data.BackupManager
 import android.app.Application
 import android.media.AudioManager
 import androidx.compose.runtime.getValue
@@ -102,13 +108,43 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var lyricsEncoding by mutableStateOf(settings.getLyricsEncoding())
         private set
+    var lyricsOutline by mutableStateOf(settings.getLyricsOutline())
+        private set
+    var repeatMode by mutableStateOf(settings.getRepeatMode())
+        private set
+    var orientationLock by mutableStateOf(settings.getOrientationLock())
+        private set
+    var songSort by mutableStateOf(settings.getSongSort())
+        private set
+    var showQueueIndicator by mutableStateOf(settings.getShowQueueIndicator())
+        private set
+    var showTopTitle by mutableStateOf(settings.getShowTopTitle())
+        private set
+    var topTitleNumber by mutableStateOf(settings.getTopTitleNumber())
+        private set
+    var countdownDots by mutableStateOf(settings.getCountdownDots())
+        private set
+    var autoPlayFavorites by mutableStateOf(settings.getAutoPlayFavorites())
+        private set
+    var keypadHaptics by mutableStateOf(settings.getKeypadHaptics())
+        private set
+    var padNumbers by mutableStateOf(settings.getPadNumbers())
+        private set
+    var keypadAutoDigits by mutableStateOf(settings.getKeypadAutoDigits())
+        private set
+    var bubbleFadeSeconds by mutableStateOf(settings.getBubbleFadeSeconds())
+        private set
+    var masterGainDb by mutableStateOf(settings.getMasterGainDb())
+        private set
+    var backupMessage by mutableStateOf<String?>(null)
+        private set
 
     /** Sa Economy mode, hindi ginagamit ang background video. */
     val videoActive: Boolean
         get() = videoEnabled && performanceMode != PerformanceMode.ECONOMY
 
     val karaokeStyle: KaraokeStyle
-        get() = KaraokeStyle(lyricsSize.scale(), highlightColor.toColor(), lyricsCase)
+        get() = KaraokeStyle(lyricsSize.scale(), highlightColor.toColor(), lyricsCase, lyricsOutline)
 
     /** Piniling charset ng lyrics; null = awtomatiko. */
     fun lyricsCharset(): Charset? =
@@ -155,8 +191,10 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     private var started = false
 
     init {
-        player.onSongFinished = { playNextFromQueue() }
+        player.onSongFinished = { finished -> handleSongFinished(finished) }
         player.applyVoiceLimit(performanceMode.voices)
+        player.applyGain(masterGainDb)
+        SongNumberFormat.padded = padNumbers
         // Ibalik ang queue na na-save noong nakaraang gamit
         IndexCache.load(queueFile, "queue")?.let { queue.addAll(it) }
         IndexCache.load(historyFile, "history")?.let { history = it }
@@ -292,6 +330,151 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
     fun chooseLyricsEncoding(name: String) {
         lyricsEncoding = name
         settings.setLyricsEncoding(name)
+    }
+
+    // ----- Mga dagdag na setting -----
+
+    fun chooseLyricsOutline(value: LyricsOutline) {
+        lyricsOutline = value
+        settings.setLyricsOutline(value)
+    }
+
+    fun chooseRepeatMode(value: RepeatMode) {
+        repeatMode = value
+        settings.setRepeatMode(value)
+    }
+
+    fun chooseOrientationLock(value: OrientationLock) {
+        orientationLock = value
+        settings.setOrientationLock(value)
+    }
+
+    fun chooseSongSort(value: SongSort) {
+        songSort = value
+        settings.setSongSort(value)
+        viewModelScope.launch {
+            songs = withContext(Dispatchers.Default) { SongSorting.sort(songs, value) }
+        }
+    }
+
+    fun toggleShowQueueIndicator() {
+        showQueueIndicator = !showQueueIndicator
+        settings.setShowQueueIndicator(showQueueIndicator)
+    }
+
+    fun toggleShowTopTitle() {
+        showTopTitle = !showTopTitle
+        settings.setShowTopTitle(showTopTitle)
+    }
+
+    fun toggleTopTitleNumber() {
+        topTitleNumber = !topTitleNumber
+        settings.setTopTitleNumber(topTitleNumber)
+    }
+
+    fun toggleCountdownDots() {
+        countdownDots = !countdownDots
+        settings.setCountdownDots(countdownDots)
+    }
+
+    fun toggleAutoPlayFavorites() {
+        autoPlayFavorites = !autoPlayFavorites
+        settings.setAutoPlayFavorites(autoPlayFavorites)
+    }
+
+    fun toggleKeypadHaptics() {
+        keypadHaptics = !keypadHaptics
+        settings.setKeypadHaptics(keypadHaptics)
+    }
+
+    fun togglePadNumbers() {
+        padNumbers = !padNumbers
+        SongNumberFormat.padded = padNumbers
+        settings.setPadNumbers(padNumbers)
+    }
+
+    fun chooseKeypadAutoDigits(value: Int) {
+        keypadAutoDigits = value
+        settings.setKeypadAutoDigits(value)
+    }
+
+    fun chooseBubbleFadeSeconds(value: Int) {
+        bubbleFadeSeconds = value
+        settings.setBubbleFadeSeconds(value)
+    }
+
+    fun changeMasterGain(db: Float) {
+        masterGainDb = db.coerceIn(-16f, 4f)
+        player.applyGain(masterGainDb)
+        settings.setMasterGainDb(masterGainDb)
+    }
+
+    fun applyMicPreset(reverb: Float, echo: Float) {
+        micReverb = reverb
+        micEcho = echo
+        pushMicLevels()
+        settings.setMicLevels(micVolume, micReverb, micEcho)
+    }
+
+    fun shuffleQueue() {
+        if (queue.size > 1) {
+            queue.shuffle()
+            persistQueue()
+        }
+    }
+
+    /** Pagkatapos ng kanta: repeat (isa o buong queue), party mode (random na paborito), o susunod sa queue. */
+    private fun handleSongFinished(finished: Song) {
+        when (repeatMode) {
+            RepeatMode.ONE -> {
+                startSong(finished)
+                return
+            }
+            RepeatMode.QUEUE -> {
+                queue.add(finished)
+                persistQueue()
+            }
+            RepeatMode.OFF -> Unit
+        }
+        if (queue.isEmpty() && autoPlayFavorites && favorites.isNotEmpty()) {
+            val pool = favorites.filter { it.key != finished.key }.ifEmpty { favorites }
+            startSong(pool.random())
+        } else {
+            playNextFromQueue()
+        }
+    }
+
+    // ----- Backup at restore -----
+
+    private fun backupFileIn(root: File) = File(root, "OpenKaraoke/openkaraoke-backup.zip")
+
+    fun backupNow() {
+        viewModelScope.launch {
+            val roots = storage.volumeRoots()
+            if (roots.isEmpty() || !storage.hasAccess()) {
+                backupMessage = "Kailangan ng access sa storage para mag-backup."
+                return@launch
+            }
+            val target = backupFileIn(roots.first())
+            val error = withContext(Dispatchers.IO) { BackupManager.export(getApplication(), target) }
+            backupMessage = if (error == null) "Na-backup: ${target.absolutePath}" else "Hindi nabackup: $error"
+        }
+    }
+
+    fun restoreBackup() {
+        viewModelScope.launch {
+            val source = storage.volumeRoots().map { backupFileIn(it) }.filter { it.isFile }.maxByOrNull { it.lastModified() }
+            if (source == null) {
+                backupMessage = "Walang nahanap na backup (OpenKaraoke/openkaraoke-backup.zip)."
+                return@launch
+            }
+            val error = withContext(Dispatchers.IO) { BackupManager.import(getApplication(), source) }
+            backupMessage = if (error == null) {
+                "Na-restore mula sa ${source.absolutePath}. Isara at buksan ulit ang app para magamit ang mga ito."
+            } else {
+                "Hindi na-restore: $error"
+            }
+        }
     }
 
     fun toggleAutoKaraoke() {
@@ -465,7 +648,7 @@ class KaraokeViewModel(app: Application) : AndroidViewModel(app) {
             if (n !in map) map[n] = s
         }
         byNumber = map
-        songs = list
+        songs = if (songSort == SongSort.NUMBER) list else SongSorting.sort(list, songSort)
         zipSongCount = list.count { it.entry != null }
     }
 

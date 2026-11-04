@@ -1,5 +1,7 @@
 package com.topz.karaoke.ui
 
+import com.topz.karaoke.data.OrientationLock
+import android.content.pm.ActivityInfo
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -71,6 +73,21 @@ fun KaraokeRoot(vm: KaraokeViewModel, onRequestAccess: () -> Unit) {
             controller?.show(WindowInsetsCompat.Type.systemBars())
         }
         onDispose { controller?.show(WindowInsetsCompat.Type.systemBars()) }
+    }
+
+    // Sa Karaoke Mode lang: i-lock ang orientation ayon sa napili sa Settings
+    DisposableEffect(vm.karaokeMode, vm.orientationLock) {
+        val activity = view.context.findActivity()
+        activity?.requestedOrientation = if (vm.karaokeMode) {
+            when (vm.orientationLock) {
+                OrientationLock.AUTO -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                OrientationLock.LANDSCAPE -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                OrientationLock.PORTRAIT -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            }
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+        onDispose { }
     }
 
     val barVisible = player.song != null && player.status != PlayerStatus.IDLE
