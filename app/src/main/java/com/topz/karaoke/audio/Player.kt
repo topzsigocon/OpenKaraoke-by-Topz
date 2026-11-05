@@ -69,6 +69,10 @@ class Player(
     var introActive by mutableStateOf(false)
         private set
 
+    /** Natitirang oras (ms) ng pahinga bago magsimula ang kanta. Para sa countdown. */
+    var introRemainingMs by mutableStateOf(0L)
+        private set
+
     /** Tinatawag kapag natapos ang kanta (para sa susunod sa queue). */
     var onSongFinished: ((Song) -> Unit)? = null
 
@@ -169,8 +173,16 @@ class Player(
                 status = PlayerStatus.PLAYING
                 if (introMs > 0L) {
                     introActive = true
-                    delay(introMs)
+                    introRemainingMs = introMs
+                    var left = introMs
+                    while (left > 0L) {
+                        val step = minOf(100L, left)
+                        delay(step)
+                        left -= step
+                        introRemainingMs = left
+                    }
                     introActive = false
+                    introRemainingMs = 0L
                 }
                 engine.play()
                 startTicker()

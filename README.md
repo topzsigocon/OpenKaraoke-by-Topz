@@ -24,6 +24,13 @@ Offline MIDI/KAR karaoke player para sa Android. Walang internet na kailangan, a
 - **Queue** na naka-save, may susunod-na-kanta at indicator
 - **Mic echo/reverb** (Oboe, low latency): gumamit ng headphones
 - Audio focus (titigil ang kanta kapag may tumawag)
+- **Maraming customization** sa Settings:
+  - Lyrics: laki, kulay ng highlight, uri ng titik (ABC / Abc), anino, dilim ng video, countdown na tuldok, orientation
+  - Tunog: gain, performance mode (para sa mahihinang phone), i-mute ang melody bilang default
+  - Queue: repeat, party mode (random na paborito), shuffle
+  - Bubble: laki, opacity, puwesto, kusang pagdilim; keypad na may awtomatikong pagdagdag at vibrate
+  - Library: pag-uuri, format ng numero; encoding ng lyrics para sa mga kantang Thai, Hapon, Tsino, atbp.
+- **Backup at restore** ng mga setting, paborito, history, at queue
 
 ## Paano gamitin
 
@@ -65,6 +72,14 @@ Pindutin ang **📺** sa player bar o sa lyrics screen. Para bumalik sa normal n
 - **Hindi para sa Google Play:** gumagamit ito ng *All files access* para sa direktang pagbasa ng SD card. Kung gusto mong i-publish, kakailanganin ng bersyong gumagamit ng Storage Access Framework (nakahanda na ang `StorageProvider` para dito).
 - **Mic:** gumamit ng headphones o wired na mic para hindi humiyaw (feedback). Ang Bluetooth ay may dagdag na delay.
 - **SoundFont:** ang buong SoundFont ay nasa memorya. Ang mga mas malaki sa mga 100 MB ay maaaring maubusan ng memorya sa mahihinang phone.
+
+## Pag-update ng app
+
+Ang APK ay pinipirmahan ng **nakatakdang key** (`app/openkaraoke-signing.p12`), kaya ang bawat bagong build ay mai-i-install **bilang update sa ibabaw ng lumang app**, nang hindi nabubura ang mga setting at paborito. Kung ang naka-install mong bersyon ay galing sa mas lumang build na iba ang pirma, kailangan mo ng isang beses na pag-uninstall.
+
+Bago mag-uninstall o mag-reinstall, gamitin ang **Settings → Backup at restore**. Nase-save ang backup sa `OpenKaraoke/openkaraoke-backup.zip` sa internal storage.
+
+> Ang key na ito ay para sa **personal na paggamit lamang** at nasa repo (hindi sikreto). Kung ipa-publish mo ang app, gumawa ng hiwalay at pribadong key at ilagay ito sa GitHub Secrets.
 
 ## Paano i-build
 
@@ -109,7 +124,8 @@ app/src/main/
 
 - [ ] Scoring (kailangan ng pagsubok sa mic)
 - [ ] TV/HDMI output
-- [ ] Mas maraming customization sa Settings
+- [x] Mas maraming customization sa Settings
+- [x] Backup at restore, at nakatakdang signing key
 - [ ] Bersyong Play Store-friendly (Storage Access Framework)
 
 ## Mga lisensya

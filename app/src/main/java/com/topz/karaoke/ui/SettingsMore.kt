@@ -44,7 +44,7 @@ fun MoreSettings(vm: KaraokeViewModel) {
     MoreSwitch("Isama ang numero sa pamagat sa itaas", null, vm.topTitleNumber) { vm.toggleTopTitleNumber() }
     MoreSwitch(
         "Countdown na tuldok",
-        "Lalabas ang ● ● ● ● sa huling 4 na segundo bago ang unang linya o pagkatapos ng mahabang instrumental.",
+        "Lalabas ang ● ● ● sa ilalim ng screen habang naghihintay bago magsimula ang kanta (sa ilalim ng pamagat, hindi nito ginagalaw ang title card). Kailangan ng pahinga na higit sa 0 segundo.",
         vm.countdownDots
     ) { vm.toggleCountdownDots() }
     Spacer(Modifier.height(8.dp))

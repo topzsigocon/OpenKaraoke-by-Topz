@@ -99,8 +99,18 @@ fun KaraokeScreen(vm: KaraokeViewModel) {
                     Modifier.fillMaxSize().padding(bottom = if (atBottom) 64.dp else 0.dp),
                     contentAlignment = if (atBottom) Alignment.BottomCenter else Alignment.Center
                 ) {
-                    KaraokeLyrics(lyrics, position, vm.karaokeLayout, vm.lyricsAlignment, style = vm.karaokeStyle, showCountdown = vm.countdownDots)
+                    KaraokeLyrics(lyrics, position, vm.karaokeLayout, vm.lyricsAlignment, style = vm.karaokeStyle)
                 }
+            }
+        }
+
+        // Countdown bago magsimula ang kanta: hiwalay na layer sa ibaba, kaya hindi nito naaapektuhan ang title card.
+        if (vm.countdownDots && player.introActive && song != null) {
+            Box(
+                Modifier.fillMaxSize().padding(bottom = 96.dp),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                CountdownDots(player.introRemainingMs, vm.karaokeStyle.highlight)
             }
         }
 
@@ -142,8 +152,7 @@ internal fun KaraokeLyrics(
     layout: KaraokeLayout,
     alignment: LyricsAlignment,
     fontScale: Float = 1f,
-    style: KaraokeStyle = KaraokeStyle(),
-    showCountdown: Boolean = false
+    style: KaraokeStyle = KaraokeStyle()
 ) {
     val current = lyrics.lineIndexAt(position)
     val opposing = alignment == LyricsAlignment.OPPOSING
@@ -151,19 +160,6 @@ internal fun KaraokeLyrics(
     val secondAlign = if (opposing) TextAlign.End else TextAlign.Center
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        if (showCountdown) {
-            // Countdown na tuldok: sa huling 4 na segundo bago ang susunod na linya, kung mahaba ang pahinga bago ito.
-            val upcoming = lyrics.lines.getOrNull(current + 1)
-            val remaining = if (upcoming == null) 0L else upcoming.startMs - position
-            val previousStart = lyrics.lines.getOrNull(current)?.words?.last()?.timeMs ?: 0L
-            val gap = if (upcoming == null) 0L else upcoming.startMs - previousStart
-            val dots = if (upcoming != null && gap >= 8000L && remaining in 1L..4000L) ((remaining + 999L) / 1000L).toInt() else 0
-            Box(Modifier.height(36.dp), contentAlignment = Alignment.Center) {
-                if (dots > 0) {
-                    Text("● ".repeat(dots).trim(), color = style.highlight, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
         if (layout == KaraokeLayout.TWO_LINE) {
             // Dalawang linya ang nakikita; nagpapalitan ang itaas at ibaba habang tumutugtog.
             val plan = KaraokeLines.twoLine(current, lyrics.lines.size)
@@ -343,3 +339,23 @@ private fun IntroCard(song: Song) {
 
 private fun topTitleText(song: Song, withNumber: Boolean): String =
     if (withNumber && song.number != null) SongNumberFormat.format(song.number) + " · " + song.title else song.title
+
+/** ● ● ● na nababawasan bawat segundo habang naghihintay bago magsimula ang kanta. */
+@Composable
+private fun CountdownDots(remainingMs: Long, color: Color) {
+    val seconds = ((remainingMs + 999L) / 1000L).toInt().coerceIn(0, 8)
+    Box(Modifier.height(40.dp), contentAlignment = Alignment.Center) {
+        if (seconds > 0) {
+            Text(
+                "● ".repeat(seconds).trim(),
+                color = color,
+                style = TextStyle(
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    shadow = Shadow(Color.Black, Offset(2f, 2f), 6f)
+                )
+            )
+        }
+    }
+}
